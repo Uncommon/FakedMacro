@@ -14,44 +14,88 @@ let testMacros: [String: Macro.Type] = [
 ]
 #endif
 
-final class FakedMacroTests: XCTestCase {
-    func testMacro() throws {
-        #if canImport(FakedMacroMacros)
-        assertMacroExpansion(
-            """
-            @Faked protocol Thing {
-              var x: Int { get }
-              func perform()
+final class FakedMacroTests: XCTestCase
+{
+  func testMacro() throws
+  {
+      #if canImport(FakedMacroMacros)
+      assertMacroExpansion(
+          """
+          @Faked protocol Thing {
+            var x: Int { get }
+            func perform()
+          }
+          """,
+          expandedSource: """
+          protocol Thing {
+            var x: Int { get }
+            func perform()
+          }
+          
+          protocol EmptyThing : Thing {
+            var x: Int {
+                get
             }
-            """,
-            expandedSource: """
-            protocol Thing {
-              var x: Int { get }
-              func perform()
-            }
-            
-            protocol EmptyThing : Thing {
-              var x: Int {
-                  get
+            func perform()
+          }
+          
+          struct FakeThing : EmptyThing  {
+          }
+          
+          extension EmptyThing {
+            var x: Int  {
+                  0
               }
-              func perform()
+            func perform() {
+              }
+          }
+          """,
+          macros: testMacros
+      )
+      #else
+      throw XCTSkip("macros are only supported when running tests for the host platform")
+      #endif
+    }
+
+  func testCollections() throws
+  {
+      #if canImport(FakedMacroMacros)
+      assertMacroExpansion(
+          """
+          @Faked protocol Thing {
+            var x: [Int] { get }
+            func perform() -> [String: Int]
+          }
+          """,
+          expandedSource: """
+          protocol Thing {
+            var x: [Int] { get }
+            func perform() -> [String: Int]
+          }
+          
+          protocol EmptyThing : Thing {
+            var x: [Int] {
+                get
             }
-            
-            struct FakeThing : EmptyThing  {
-            }
-            
-            extension EmptyThing {
-              var x: Int  {
-                    0
-                }
-              func perform() {
-                }
-            }
-            """,
-            macros: testMacros
-        )
-        #else
-        throw XCTSkip("macros are only supported when running tests for the host platform")
-        #endif
+            func perform() -> [String: Int]
+          }
+          
+          struct FakeThing : EmptyThing  {
+          }
+          
+          extension EmptyThing {
+            var x: [Int]  {
+                  []
+              }
+            func perform() -> [String: Int] {
+                  [:]
+              }
+          }
+          """,
+          macros: testMacros
+      )
+      #else
+      throw XCTSkip("macros are only supported when running tests for the host platform")
+      #endif
     }
 }

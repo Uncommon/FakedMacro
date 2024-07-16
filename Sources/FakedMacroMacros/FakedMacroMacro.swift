@@ -92,13 +92,27 @@ public struct FakedImpMacro: ExtensionMacro
       guard let emptyValue = defaultIdentifierValue(typeIdentifier)
       else { throw Error.unhandledType }
       
-      let newProp = try!  VariableDeclSyntax(
+      var newProp = try! VariableDeclSyntax(
         """
           var \(binding.pattern.detached): \(raw: type) { \(raw: emptyValue) }
         """
       )
       
       return newProp
+    }
+    else if binding.typeAnnotation?.type.as(ArrayTypeSyntax.self) != nil {
+      return try VariableDeclSyntax(
+        """
+          var \(binding.pattern.detached): \(raw: type) { [] }
+        """
+        )
+    }
+    else if binding.typeAnnotation?.type.as(DictionaryTypeSyntax.self) != nil {
+      return try VariableDeclSyntax(
+        """
+          var \(binding.pattern.detached): \(raw: type) { [:] }
+        """
+        )
     }
     throw Error.unhandledType
   }
@@ -111,6 +125,12 @@ public struct FakedImpMacro: ExtensionMacro
       if let identifier = clause.type.as(IdentifierTypeSyntax.self) {
         defaultValue = defaultIdentifierValue(identifier) ?? ""
       }
+      else if clause.type.as(ArrayTypeSyntax.self) != nil {
+        defaultValue = "[]"
+      }
+      else if clause.type.as(DictionaryTypeSyntax.self) != nil {
+        defaultValue = "[:]"
+      }
     }
     
     var copy = function
@@ -122,9 +142,9 @@ public struct FakedImpMacro: ExtensionMacro
   static func defaultIdentifierValue(_ identifier: IdentifierTypeSyntax) -> String?
   {
     switch identifier.name.text {
-      case "Int":
+      case "Int", "UInt", "Float", "Double":
         "0"
-        case "String":
+      case "String":
         #""""#
       default:
         nil
