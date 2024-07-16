@@ -9,7 +9,8 @@ import XCTest
 import FakedMacroMacros
 
 let testMacros: [String: Macro.Type] = [
-    "stringify": StringifyMacro.self,
+    "Faked": FakedMacro.self,
+    "Faked_Imp": FakedImpMacro.self,
 ]
 #endif
 
@@ -18,27 +19,35 @@ final class FakedMacroTests: XCTestCase {
         #if canImport(FakedMacroMacros)
         assertMacroExpansion(
             """
-            #stringify(a + b)
+            @Faked protocol Thing {
+              var x: Int { get }
+              func perform()
+            }
             """,
             expandedSource: """
-            (a + b, "a + b")
+            protocol Thing {
+              var x: Int { get }
+              func perform()
+            }
+            
+            protocol EmptyThing : Thing {
+              var x: Int {
+                  get
+              }
+              func perform()
+            }
+            
+            struct FakeThing : EmptyThing  {
+            }
+            
+            extension EmptyThing {
+              var x: Int  {
+                    0
+                }
+              func perform() {
+                }
+            }
             """,
-            macros: testMacros
-        )
-        #else
-        throw XCTSkip("macros are only supported when running tests for the host platform")
-        #endif
-    }
-
-    func testMacroWithStringLiteral() throws {
-        #if canImport(FakedMacroMacros)
-        assertMacroExpansion(
-            #"""
-            #stringify("Hello, \(name)")
-            """#,
-            expandedSource: #"""
-            ("Hello, \(name)", #""Hello, \(name)""#)
-            """#,
             macros: testMacros
         )
         #else

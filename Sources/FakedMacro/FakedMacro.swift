@@ -1,11 +1,12 @@
-// The Swift Programming Language
-// https://docs.swift.org/swift-book
+/// When attached to a protocol, creates a child protocol with default
+/// implementations for all members - returning `nil`, `0`, or other empty
+/// values.
+@attached(peer, names: prefixed(Empty))
+public macro Faked() = #externalMacro(module: "FakedMacroMacros",
+                                      type: "FakedMacro")
 
-/// A macro that produces both a value and a string containing the
-/// source code that generated the value. For example,
-///
-///     #stringify(x + y)
-///
-/// produces a tuple `(x + y, "x + y")`.
-@freestanding(expression)
-public macro stringify<T>(_ value: T) -> (T, String) = #externalMacro(module: "FakedMacroMacros", type: "StringifyMacro")
+/// Used by `@Faked` to produce the actual implementations, since an
+/// extension must specifically be added by an extension macro.
+@attached(extension, names: arbitrary)
+public macro Faked_Imp() = #externalMacro(module: "FakedMacroMacros",
+                                          type: "FakedImpMacro")
