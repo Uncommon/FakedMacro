@@ -37,7 +37,7 @@ final class FakedMacroTests: XCTestCase
           func perform()
         }
         
-        struct FakeThing : EmptyThing {}
+        struct NullThing : EmptyThing {}
         
         extension EmptyThing {
           var x: Int { 0 }
@@ -78,7 +78,7 @@ final class FakedMacroTests: XCTestCase
           func dictFunc() -> [String: Int]
         }
         
-        struct FakeThing : EmptyThing {}
+        struct NullThing : EmptyThing {}
         
         extension EmptyThing {
           var x: [Int] { [] }
@@ -121,7 +121,7 @@ assertMacroExpansion(
       func idFunc() -> (any Identifiable)?
     }
     
-    struct FakeThing : EmptyThing {}
+    struct NullThing : EmptyThing {}
     
     extension EmptyThing {
       var x: Int? { nil }

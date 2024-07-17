@@ -47,7 +47,7 @@ public struct FakedMacro: PeerMacro
     
     let fakeStruct = try SwiftSyntax.StructDeclSyntax(
       """
-        struct Fake\(protocolDec.name): Empty\(protocolDec.name){}
+        struct Null\(protocolDec.name): Empty\(protocolDec.name){}
       """
     )
     
