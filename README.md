@@ -1,6 +1,6 @@
 # `@Faked` Macro
 
-The `@Faked` makes it more convenient to create implementations of your protocols for tests and previews.
+The `@Faked` macro makes it more convenient to create implementations of your protocols for tests and previews.
 
 When attached to a protocol, this macro creates a child protocol prefixed with `Empty` that has implementations of all properties and functions returning default values, such as zero, `nil`, or empty arrays. It also creates a concrete type prefixed with `Null` - either a `struct` or a `class` depedning on whether the original protocol inherits from `AnyObject` - which inherits from the `Empty` protocol.
 

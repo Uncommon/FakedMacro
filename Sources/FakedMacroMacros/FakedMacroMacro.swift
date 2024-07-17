@@ -123,20 +123,25 @@ public struct FakedImpMacro: ExtensionMacro
     let type = binding.typeAnnotation!.type.description
     let defaultValue: String
     
-    if let typeIdentifier = binding.typeAnnotation!.type.as(IdentifierTypeSyntax.self) {
-      guard let identifierDefault = defaultIdentifierValue(typeIdentifier)
-      else { throw Error.unhandledType }
-      
-      defaultValue = identifierDefault
-    }
-    else if binding.typeAnnotation?.type.as(ArrayTypeSyntax.self) != nil {
-      defaultValue = "[]"
-    }
-    else if binding.typeAnnotation?.type.as(DictionaryTypeSyntax.self) != nil {
-      defaultValue = "[:]"
-    }
-    else if binding.typeAnnotation?.type.as(OptionalTypeSyntax.self) != nil {
-      defaultValue = "nil"
+    if let type = binding.typeAnnotation?.type {
+      if let typeIdentifier = type.as(IdentifierTypeSyntax.self) {
+        guard let identifierDefault = defaultIdentifierValue(typeIdentifier)
+        else { throw Error.unhandledType }
+        
+        defaultValue = identifierDefault
+      }
+      else if type.is(ArrayTypeSyntax.self) {
+        defaultValue = "[]"
+      }
+      else if type.is(DictionaryTypeSyntax.self) {
+        defaultValue = "[:]"
+      }
+      else if type.is(OptionalTypeSyntax.self) {
+        defaultValue = "nil"
+      }
+      else {
+        throw Error.unhandledType
+      }
     }
     else {
       throw Error.unhandledType
@@ -166,13 +171,13 @@ public struct FakedImpMacro: ExtensionMacro
       if let identifier = clause.type.as(IdentifierTypeSyntax.self) {
         defaultValue = defaultIdentifierValue(identifier) ?? ""
       }
-      else if clause.type.as(ArrayTypeSyntax.self) != nil {
+      else if clause.type.is(ArrayTypeSyntax.self) {
         defaultValue = "[]"
       }
-      else if clause.type.as(DictionaryTypeSyntax.self) != nil {
+      else if clause.type.is(DictionaryTypeSyntax.self) {
         defaultValue = "[:]"
       }
-      else if clause.type.as(OptionalTypeSyntax.self) != nil {
+      else if clause.type.is(OptionalTypeSyntax.self) {
         defaultValue = "nil"
       }
     }
