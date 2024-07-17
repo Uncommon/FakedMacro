@@ -117,6 +117,9 @@ public struct FakedImpMacro: ExtensionMacro
     else if binding.typeAnnotation?.type.as(DictionaryTypeSyntax.self) != nil {
       defaultValue = "[:]"
     }
+    else if binding.typeAnnotation?.type.as(OptionalTypeSyntax.self) != nil {
+      defaultValue = "nil"
+    }
     else {
       throw Error.unhandledType
     }
@@ -146,6 +149,9 @@ public struct FakedImpMacro: ExtensionMacro
       }
       else if clause.type.as(DictionaryTypeSyntax.self) != nil {
         defaultValue = "[:]"
+      }
+      else if clause.type.as(OptionalTypeSyntax.self) != nil {
+        defaultValue = "nil"
       }
     }
     
