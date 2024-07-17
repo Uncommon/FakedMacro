@@ -32,12 +32,12 @@ final class FakedMacroTests: XCTestCase
           func perform()
         }
         
-        protocol EmptyThing : Thing {
+        protocol EmptyThing: Thing {
           var x: Int { get }
           func perform()
         }
         
-        struct NullThing : EmptyThing {}
+        struct NullThing: EmptyThing {}
         
         extension EmptyThing {
           var x: Int { 0 }
@@ -71,14 +71,14 @@ final class FakedMacroTests: XCTestCase
           func dictFunc() -> [String: Int]
         }
         
-        protocol EmptyThing : Thing {
+        protocol EmptyThing: Thing {
           var x: [Int] { get }
           var y: [String: Int] { get }
           func arrayfunc() -> [Int] { get }
           func dictFunc() -> [String: Int]
         }
         
-        struct NullThing : EmptyThing {}
+        struct NullThing: EmptyThing {}
         
         extension EmptyThing {
           var x: [Int] { [] }
@@ -96,44 +96,76 @@ final class FakedMacroTests: XCTestCase
   
   func testOptionals() throws
   {
-#if canImport(FakedMacroMacros)
-assertMacroExpansion(
-    """
-    @Faked protocol Thing {
-      var x: Int? { get }
-      var y: (any Identifiable)? { get }
-      func intfunc() -> Int?
-      func idFunc() -> (any Identifiable)?
-    }
-    """,
-    expandedSource: """
-    protocol Thing {
-      var x: Int? { get }
-      var y: (any Identifiable)? { get }
-      func intfunc() -> Int?
-      func idFunc() -> (any Identifiable)?
-    }
-    
-    protocol EmptyThing : Thing {
-      var x: Int? { get }
-      var y: (any Identifiable)? { get }
-      func intfunc() -> Int?
-      func idFunc() -> (any Identifiable)?
-    }
-    
-    struct NullThing : EmptyThing {}
-    
-    extension EmptyThing {
-      var x: Int? { nil }
-      var y: (any Identifiable)? { nil }
-      func intfunc() -> Int? { nil }
-      func idFunc() -> (any Identifiable)? { nil }
-    }
-    """,
-    macros: testMacros
-)
-#else
-throw XCTSkip("macros are only supported when running tests for the host platform")
-#endif
+    #if canImport(FakedMacroMacros)
+    assertMacroExpansion(
+        """
+        @Faked protocol Thing {
+          var x: Int? { get }
+          var y: (any Identifiable)? { get }
+          func intfunc() -> Int?
+          func idFunc() -> (any Identifiable)?
+        }
+        """,
+        expandedSource: """
+        protocol Thing {
+          var x: Int? { get }
+          var y: (any Identifiable)? { get }
+          func intfunc() -> Int?
+          func idFunc() -> (any Identifiable)?
+        }
+        
+        protocol EmptyThing: Thing {
+          var x: Int? { get }
+          var y: (any Identifiable)? { get }
+          func intfunc() -> Int?
+          func idFunc() -> (any Identifiable)?
+        }
+        
+        struct NullThing: EmptyThing {}
+        
+        extension EmptyThing {
+          var x: Int? { nil }
+          var y: (any Identifiable)? { nil }
+          func intfunc() -> Int? { nil }
+          func idFunc() -> (any Identifiable)? { nil }
+        }
+        """,
+        macros: testMacros
+    )
+    #else
+    throw XCTSkip("macros are only supported when running tests for the host platform")
+    #endif
+  }
+  
+  func testClass() throws
+  {
+    #if canImport(FakedMacroMacros)
+    assertMacroExpansion(
+        """
+        @Faked protocol Thing: AnyObject {
+          func intFunc() -> Int
+        }
+        """,
+        expandedSource: """
+        protocol Thing: AnyObject {
+          func intFunc() -> Int
+        }
+        
+        protocol EmptyThing: Thing {
+          func intFunc() -> Int
+        }
+        
+        class NullThing: EmptyThing {}
+        
+        extension EmptyThing {
+        
+          func intFunc() -> Int { 0 }
+        }
+        """,
+        macros: testMacros
+    )
+    #else
+    throw XCTSkip("macros are only supported when running tests for the host platform")
+    #endif
   }
 }

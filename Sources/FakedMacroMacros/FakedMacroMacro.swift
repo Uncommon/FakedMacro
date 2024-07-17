@@ -23,10 +23,11 @@ public struct FakedMacro: PeerMacro
   {
     guard let protocolDec = declaration.as(ProtocolDeclSyntax.self)
     else { throw Error.notAProtocol }
-    let emptyProtocolName = "Empty\(protocolDec.name)"
+    let protocolName = protocolDec.name.text
+    let emptyProtocolName = "Empty\(protocolName)"
     var emptyProtocol = try SwiftSyntax.ProtocolDeclSyntax(
         """
-        protocol \(raw: emptyProtocolName): \(protocolDec.name){
+        protocol \(raw: emptyProtocolName): \(raw: protocolName) {
         }
         """)
     let vars = protocolDec.memberBlock.members
@@ -45,14 +46,27 @@ public struct FakedMacro: PeerMacro
       for function in funcs { function }
     }
     
-    let fakeStruct = try SwiftSyntax.StructDeclSyntax(
-      """
-        struct Null\(protocolDec.name): Empty\(protocolDec.name){}
-      """
-    )
+    let isAnyObject = protocolDec.inheritanceClause?.inheritedTypes.contains {
+      if let identifier = $0.type.as(IdentifierTypeSyntax.self),
+         identifier.name.text == "AnyObject" {
+        return true
+      }
+      else {
+        return false
+      }
+    } ?? false
+    let nullType: any DeclSyntaxProtocol = isAnyObject
+      ? try ClassDeclSyntax(
+        """
+          class Null\(raw: protocolName): \(raw: emptyProtocolName) {}
+        """)
+      : try StructDeclSyntax(
+        """
+          struct Null\(raw: protocolName): \(raw: emptyProtocolName) {}
+        """)
     
     return [DeclSyntax(emptyProtocol),
-            DeclSyntax(fakeStruct)]
+            DeclSyntax(nullType)]
   }
 }
 
