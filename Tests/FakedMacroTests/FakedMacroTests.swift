@@ -40,7 +40,6 @@ final class FakedMacroTests: XCTestCase
         struct FakeThing : EmptyThing {}
         
         extension EmptyThing {
-        
           var x: Int { 0 }
           func perform() {}
         }
@@ -82,7 +81,6 @@ final class FakedMacroTests: XCTestCase
         struct FakeThing : EmptyThing {}
         
         extension EmptyThing {
-        
           var x: [Int] { [] }
           var y: [String: Int] { [:] }
           func arrayfunc() -> [Int]  { [] }
@@ -126,7 +124,6 @@ assertMacroExpansion(
     struct FakeThing : EmptyThing {}
     
     extension EmptyThing {
-    
       var x: Int? { nil }
       var y: (any Identifiable)? { nil }
       func intfunc() -> Int? { nil }

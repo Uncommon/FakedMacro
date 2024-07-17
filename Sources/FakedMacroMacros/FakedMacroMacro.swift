@@ -70,13 +70,16 @@ public struct FakedImpMacro: ExtensionMacro
   {
     guard let protocolDec = declaration.as(ProtocolDeclSyntax.self)
     else { throw Error.notAProtocol }
+    var firstVar = true
 
     let members = try protocolDec.memberBlock.members.map {
       member -> DeclSyntaxProtocol in
       if let property = member.decl.as(VariableDeclSyntax.self) {
-        return try defaultPropertyImp(property)
+        defer { firstVar = false }
+        return try defaultPropertyImp(property, isFirst: firstVar)
       }
       else if let function = member.decl.as(FunctionDeclSyntax.self) {
+        firstVar = true
         return try defaultFunctionImp(function)
       }
       throw Error.invalidMember
@@ -98,7 +101,8 @@ public struct FakedImpMacro: ExtensionMacro
         memberBlock: memberBlock)]
   }
   
-  static func defaultPropertyImp(_ property: VariableDeclSyntax) throws -> VariableDeclSyntax
+  static func defaultPropertyImp(_ property: VariableDeclSyntax,
+                                 isFirst: Bool) throws -> VariableDeclSyntax
   {
     guard let binding = property.bindings.first
     else { throw Error.bindingCount }
@@ -129,9 +133,13 @@ public struct FakedImpMacro: ExtensionMacro
         var \(binding.pattern.detached): \(raw: type){ \(raw: defaultValue) }
       """
       )
+    var trivia = property.bindingSpecifier.leadingTrivia
     
+    if isFirst {
+      trivia = Trivia(pieces: trivia.pieces.filter { !$0.isNewline })
+    }
     decl.bindingSpecifier = .keyword(.var,
-                                     leadingTrivia: property.bindingSpecifier.leadingTrivia,
+                                     leadingTrivia: trivia,
                                      trailingTrivia: .space)
     return decl
   }
