@@ -58,25 +58,33 @@ final class FakedMacroTests: XCTestCase
           """
           @Faked protocol Thing {
             var x: [Int] { get }
-            func perform() -> [String: Int]
+            var y: [String: Int] { get }
+            func arrayfunc() -> [Int] { get }
+            func dictFunc() -> [String: Int]
           }
           """,
           expandedSource: """
           protocol Thing {
             var x: [Int] { get }
-            func perform() -> [String: Int]
+            var y: [String: Int] { get }
+            func arrayfunc() -> [Int] { get }
+            func dictFunc() -> [String: Int]
           }
           
           protocol EmptyThing : Thing {
             var x: [Int] { get }
-            func perform() -> [String: Int]
+            var y: [String: Int] { get }
+            func arrayfunc() -> [Int] { get }
+            func dictFunc() -> [String: Int]
           }
           
           struct FakeThing : EmptyThing {}
           
           extension EmptyThing {
             var x: [Int] { [] }
-            func perform() -> [String: Int] { [:] }
+            var y: [String: Int] { [:] }
+            func arrayfunc() -> [Int] { [] }
+            func dictFunc() -> [String: Int] { [:] }
           }
           """,
           macros: testMacros

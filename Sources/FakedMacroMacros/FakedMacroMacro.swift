@@ -103,34 +103,34 @@ public struct FakedImpMacro: ExtensionMacro
     guard let binding = property.bindings.first
     else { throw Error.bindingCount }
     let type = binding.typeAnnotation!.type.description
+    let defaultValue: String
     
     if let typeIdentifier = binding.typeAnnotation!.type.as(IdentifierTypeSyntax.self) {
-      guard let emptyValue = defaultIdentifierValue(typeIdentifier)
+      guard let identifierDefault = defaultIdentifierValue(typeIdentifier)
       else { throw Error.unhandledType }
       
-      let newProp = try! VariableDeclSyntax(
-        """
-          var \(binding.pattern.detached): \(raw: type){ \(raw: emptyValue) }
-        """
-      )
-      
-      return newProp
+      defaultValue = identifierDefault
     }
     else if binding.typeAnnotation?.type.as(ArrayTypeSyntax.self) != nil {
-      return try VariableDeclSyntax(
-        """
-          var \(binding.pattern.detached): \(raw: type){ [] }
-        """
-        )
+      defaultValue = "[]"
     }
     else if binding.typeAnnotation?.type.as(DictionaryTypeSyntax.self) != nil {
-      return try VariableDeclSyntax(
-        """
-          var \(binding.pattern.detached): \(raw: type){ [:] }
-        """
-        )
+      defaultValue = "[:]"
     }
-    throw Error.unhandledType
+    else {
+      throw Error.unhandledType
+    }
+    
+    var decl = try VariableDeclSyntax(
+      """
+        var \(binding.pattern.detached): \(raw: type){ \(raw: defaultValue) }
+      """
+      )
+    
+    decl.bindingSpecifier = .keyword(.var,
+                                     leadingTrivia: property.bindingSpecifier.leadingTrivia,
+                                     trailingTrivia: .space)
+    return decl
   }
   
   static func defaultFunctionImp(_ function: FunctionDeclSyntax) throws -> FunctionDeclSyntax
