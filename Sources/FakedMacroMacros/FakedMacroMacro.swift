@@ -13,6 +13,8 @@ enum Error: Swift.Error
 
 public struct FakedMacro: PeerMacro
 {
+  static public var formatMode: FormatMode { .disabled }
+  
   public static func expansion(
       of node: SwiftSyntax.AttributeSyntax,
       providingPeersOf declaration: some SwiftSyntax.DeclSyntaxProtocol,
@@ -24,7 +26,8 @@ public struct FakedMacro: PeerMacro
     let emptyProtocolName = "Empty\(protocolDec.name)"
     var emptyProtocol = try SwiftSyntax.ProtocolDeclSyntax(
         """
-        protocol \(raw: emptyProtocolName): \(protocolDec.name){}
+        protocol \(raw: emptyProtocolName): \(protocolDec.name){
+        }
         """)
     let vars = protocolDec.memberBlock.members
         .map(\.decl)
@@ -34,7 +37,7 @@ public struct FakedMacro: PeerMacro
         .compactMap { $0.as(FunctionDeclSyntax.self) }
 
     emptyProtocol.attributes.append(.attribute(
-        .init(stringLiteral: "@Faked_Imp")))
+        .init(stringLiteral: "@Faked_Imp ")))
     
     // Copy in the properties and functions
     emptyProtocol.memberBlock.members = .init {
@@ -44,7 +47,7 @@ public struct FakedMacro: PeerMacro
     
     let fakeStruct = try SwiftSyntax.StructDeclSyntax(
       """
-        struct Fake\(protocolDec.name): Empty\(protocolDec.name) {}
+        struct Fake\(protocolDec.name): Empty\(protocolDec.name){}
       """
     )
     
@@ -55,6 +58,8 @@ public struct FakedMacro: PeerMacro
 
 public struct FakedImpMacro: ExtensionMacro
 {
+  static public var formatMode: FormatMode { .disabled }
+  
   public static func expansion(
       of node: AttributeSyntax,
       attachedTo declaration: some DeclGroupSyntax,
@@ -76,10 +81,21 @@ public struct FakedImpMacro: ExtensionMacro
       }
       throw Error.invalidMember
     }
-    
-    return [ExtensionDeclSyntax(extendedType: type, memberBlock: .init() {
+    let memberBlock = MemberBlockSyntax(
+        leftBrace: TokenSyntax(.leftBrace,
+                               leadingTrivia: .space,
+                               trailingTrivia: .newline,
+                               presence: .present),
+        rightBrace: TokenSyntax(.rightBrace,
+                                leadingTrivia: .newline,
+                                presence: .present)) {
       for member in members { member }
-    })]
+    }
+    
+    return [ExtensionDeclSyntax(
+        extensionKeyword: .keyword(.extension, trailingTrivia: .space),
+        extendedType: type,
+        memberBlock: memberBlock)]
   }
   
   static func defaultPropertyImp(_ property: VariableDeclSyntax) throws -> VariableDeclSyntax
@@ -92,9 +108,9 @@ public struct FakedImpMacro: ExtensionMacro
       guard let emptyValue = defaultIdentifierValue(typeIdentifier)
       else { throw Error.unhandledType }
       
-      var newProp = try! VariableDeclSyntax(
+      let newProp = try! VariableDeclSyntax(
         """
-          var \(binding.pattern.detached): \(raw: type) { \(raw: emptyValue) }
+          var \(binding.pattern.detached): \(raw: type){ \(raw: emptyValue) }
         """
       )
       
@@ -103,14 +119,14 @@ public struct FakedImpMacro: ExtensionMacro
     else if binding.typeAnnotation?.type.as(ArrayTypeSyntax.self) != nil {
       return try VariableDeclSyntax(
         """
-          var \(binding.pattern.detached): \(raw: type) { [] }
+          var \(binding.pattern.detached): \(raw: type){ [] }
         """
         )
     }
     else if binding.typeAnnotation?.type.as(DictionaryTypeSyntax.self) != nil {
       return try VariableDeclSyntax(
         """
-          var \(binding.pattern.detached): \(raw: type) { [:] }
+          var \(binding.pattern.detached): \(raw: type){ [:] }
         """
         )
     }
@@ -135,7 +151,10 @@ public struct FakedImpMacro: ExtensionMacro
     
     var copy = function
     
-    copy.body = .init(statements: .init(stringLiteral: defaultValue))
+    copy.body = .init(leadingTrivia: .space,
+                      statements: .init(
+                        stringLiteral: defaultValue.isEmpty ? "" :
+                          " \(defaultValue) "))
     return copy
   }
   

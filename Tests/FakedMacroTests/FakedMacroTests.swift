@@ -33,21 +33,15 @@ final class FakedMacroTests: XCTestCase
           }
           
           protocol EmptyThing : Thing {
-            var x: Int {
-                get
-            }
+            var x: Int { get }
             func perform()
           }
           
-          struct FakeThing : EmptyThing  {
-          }
+          struct FakeThing : EmptyThing {}
           
           extension EmptyThing {
-            var x: Int  {
-                  0
-              }
-            func perform() {
-              }
+            var x: Int { 0 }
+            func perform() {}
           }
           """,
           macros: testMacros
@@ -74,22 +68,15 @@ final class FakedMacroTests: XCTestCase
           }
           
           protocol EmptyThing : Thing {
-            var x: [Int] {
-                get
-            }
+            var x: [Int] { get }
             func perform() -> [String: Int]
           }
           
-          struct FakeThing : EmptyThing  {
-          }
+          struct FakeThing : EmptyThing {}
           
           extension EmptyThing {
-            var x: [Int]  {
-                  []
-              }
-            func perform() -> [String: Int] {
-                  [:]
-              }
+            var x: [Int] { [] }
+            func perform() -> [String: Int] { [:] }
           }
           """,
           macros: testMacros
