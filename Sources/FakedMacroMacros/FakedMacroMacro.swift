@@ -311,6 +311,8 @@ public struct FakedImpMacro: ExtensionMacro
         "0"
       case "String":
         #""""#
+      case "Bool":
+        "false"
       default:
         nil
     }

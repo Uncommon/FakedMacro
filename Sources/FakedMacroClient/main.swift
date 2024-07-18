@@ -6,5 +6,8 @@ let b = 25
 @Faked(types: ["X": Int.self])
 protocol Thing {
   associatedtype X
+  var isGood: Bool { get }
   func intFunc() -> Int
 }
+
+print("\(NullThing().isGood)")
