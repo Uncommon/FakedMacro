@@ -1,8 +1,8 @@
 /// When attached to a protocol, creates a child protocol with default
 /// implementations for all members - returning `nil`, `0`, or other empty
 /// values.
-@attached(peer, names: prefixed(Empty))
-public macro Faked() = #externalMacro(module: "FakedMacroMacros",
+@attached(peer, names: prefixed(Empty), prefixed(Null))
+public macro Faked(types: [String: Any.Type] = [:]) = #externalMacro(module: "FakedMacroMacros",
                                       type: "FakedMacro")
 
 /// Used by `@Faked` to produce the actual implementations, since an

@@ -41,6 +41,30 @@ struct FakeThing: EmptyThing {
 }
 ```
 
+### Associated types
+
+If the protocol has associated types, you will need to specify which concrete types to use in the "Null" type. This is done with the `types` parameter:
+
+```
+@Faked(types: ["X": Int.self, "Y": String.self])
+protocol Thing {
+    associatedtype X
+    associatedtype Y
+    func intFunc() -> Int
+}
+```
+
+The resulting concrete type will be:
+
+```
+struct NullThing: EmptyThing {
+    typealias X = Int
+    typealias Y = String
+}
+```
+
 ### Implementation note
 
 Notice than in the example above, `EmptyThing` duplicates all the members from `Thing`. This is because of an implementation detail: `@Faked` is a two-stage macro. `@Faked` itself is a "peer macro", creating `EmptyThing` and `NullThing` as _peers_ of the original protocol. It also attaches a second macro, `@Thing_Imp`, to `EmptyThing`. `@Thing_Imp` is an "extension macro", and only extension macros may create extensions (and only of the protocol they're attached to), so it creates the extension with the default implementations. Since `@Thing_Imp` can't see anything outside the protocol it's attached to, all the members of `Thing` must be duplicated in `EmptyThing` so the second macro can see them.
+
+Unfortunately, as of Xcode 15.4 (and 16 beta), expanding a nested macro doesn't work.

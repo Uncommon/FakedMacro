@@ -168,4 +168,43 @@ final class FakedMacroTests: XCTestCase
     throw XCTSkip("macros are only supported when running tests for the host platform")
     #endif
   }
+  
+  func testAssociatedType() throws
+  {
+    #if canImport(FakedMacroMacros)
+    assertMacroExpansion(
+        """
+        @Faked(types: ["X": Int.self, "Y": String.self]) protocol Thing {
+          associatedtype X
+          associatedtype Y
+          func intFunc() -> Int
+        }
+        """,
+        expandedSource: """
+        protocol Thing {
+          associatedtype X
+          associatedtype Y
+          func intFunc() -> Int
+        }
+        
+        protocol EmptyThing: Thing {
+          func intFunc() -> Int
+        }
+        
+        struct NullThing: EmptyThing {
+          typealias X = Int
+          typealias Y = String
+        }
+        
+        extension EmptyThing {
+        
+          func intFunc() -> Int { 0 }
+        }
+        """,
+        macros: testMacros
+    )
+    #else
+    throw XCTSkip("macros are only supported when running tests for the host platform")
+    #endif
+  }
 }

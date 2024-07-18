@@ -1,14 +1,42 @@
 import SwiftCompilerPlugin
+import SwiftDiagnostics
 import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
-enum Error: Swift.Error
+enum FakedError: Swift.Error, DiagnosticMessage
 {
+  case bindingCount
   case notAProtocol
   case invalidMember
-  case bindingCount
+  case typesMissing
+  case typesMismatch
   case unhandledType
+  case wrongTypeSpecifier
+
+  var message: String
+  {
+    switch self {
+      case .bindingCount:
+        "Each `var` must have exactly one binding"
+      case .notAProtocol:
+        "Macro must be attached to a protocol"
+      case .invalidMember:
+        "Unsupported protocol member found"
+      case .typesMissing:
+        "Types not specified for protocol with associated types"
+      case .typesMismatch:
+        "Types count does not match associated types count"
+      case .unhandledType:
+        "Result type not supported"
+      case .wrongTypeSpecifier:
+        "Types must be specified as a string literal and a type such as `Int.self`"
+    }
+  }
+  
+  var diagnosticID: MessageID { .init(domain: "FakedMacro", id: "\(self)") }
+  
+  var severity: DiagnosticSeverity { .error }
 }
 
 public struct FakedMacro: PeerMacro
@@ -22,7 +50,7 @@ public struct FakedMacro: PeerMacro
     -> [SwiftSyntax.DeclSyntax]
   {
     guard let protocolDec = declaration.as(ProtocolDeclSyntax.self)
-    else { throw Error.notAProtocol }
+    else { throw FakedError.notAProtocol }
     let protocolName = protocolDec.name.text
     let emptyProtocolName = "Empty\(protocolName)"
     var emptyProtocol = try SwiftSyntax.ProtocolDeclSyntax(
@@ -36,7 +64,49 @@ public struct FakedMacro: PeerMacro
     let funcs = protocolDec.memberBlock.members
         .map(\.decl)
         .compactMap { $0.as(FunctionDeclSyntax.self) }
+    let assocs = protocolDec.memberBlock.members
+        .map(\.decl)
+        .compactMap { $0.as(AssociatedTypeDeclSyntax.self) }
+    var concreteAssocTypes: [(String, String)] = []
+    let indentTrivia = Trivia(pieces: protocolDec.memberBlock.members.first?
+        .decl.leadingTrivia.filter(\.isSpaceOrTab) ?? [])
+    
+    if case let .argumentList(arguments) = node.arguments,
+       let types = arguments.first,
+       let dict = types.expression.as(DictionaryExprSyntax.self),
+       case let .elements(elements) = dict.content
+    {
+      for element in elements {
+        guard let substitute = element.key.as(StringLiteralExprSyntax.self),
+              let substituteName = substitute.representedLiteralValue,
+              let type = element.value.as(MemberAccessExprSyntax.self),
+              let typeName = type.base?.as(DeclReferenceExprSyntax.self)
+        else {
+          context.diagnose(.init(node: element,
+                                 message: FakedError.wrongTypeSpecifier))
+          return []
+        }
+        
+        concreteAssocTypes.append((substituteName,
+                                   typeName.baseName.text))
+      }
+    }
 
+    if assocs.isEmpty {
+      guard concreteAssocTypes.isEmpty
+      else {
+        context.diagnose(.init(node: node, message: FakedError.typesMissing))
+        return []
+      }
+    }
+    else {
+      guard concreteAssocTypes.count == assocs.count
+      else {
+        context.diagnose(.init(node: node, message: FakedError.typesMismatch))
+        return []
+      }
+    }
+    
     emptyProtocol.attributes.append(.attribute(
         .init(stringLiteral: "@Faked_Imp ")))
     
@@ -55,18 +125,61 @@ public struct FakedMacro: PeerMacro
         return false
       }
     } ?? false
+    let braceTrivia: Trivia = concreteAssocTypes.isEmpty ? [] : .newline
+    var nullMemberBlock = MemberBlockSyntax(
+        leftBrace: .leftBraceToken(trailingTrivia: braceTrivia),
+        members: [])
+    
+    for type in concreteAssocTypes {
+      let member = MemberBlockItemSyntax(
+          leadingTrivia: indentTrivia,
+          decl: try TypeAliasDeclSyntax("typealias \(raw: type.0) = \(raw: type.1)"),
+          trailingTrivia: .newline)
+      
+      nullMemberBlock.members.append(member)
+    }
+    
+    let nullIdentifier: TokenSyntax = .identifier("Null\(protocolName)")
+                                      .withLeadingSpace
+    let inheritance = InheritanceClauseSyntax(
+      colon: .colonToken(trailingTrivia: .space)) {
+      InheritedTypeSyntax(type: TypeSyntax(stringLiteral: emptyProtocolName),
+                          trailingTrivia: .space)
+    }
     let nullType: any DeclSyntaxProtocol = isAnyObject
-      ? try ClassDeclSyntax(
-        """
-          class Null\(raw: protocolName): \(raw: emptyProtocolName) {}
-        """)
-      : try StructDeclSyntax(
-        """
-          struct Null\(raw: protocolName): \(raw: emptyProtocolName) {}
-        """)
+        ? ClassDeclSyntax(name: nullIdentifier,
+                          inheritanceClause: inheritance,
+                          memberBlock: nullMemberBlock)
+        : StructDeclSyntax(name: nullIdentifier,
+                           inheritanceClause: inheritance,
+                           memberBlock: nullMemberBlock)
     
     return [DeclSyntax(emptyProtocol),
             DeclSyntax(nullType)]
+  }
+}
+
+extension SyntaxProtocol
+{
+  var withLeadingSpace: Self
+  {
+    var copy = self
+    copy.leadingTrivia = .space
+    return copy
+  }
+
+  var withTrailingSpace: Self
+  {
+    var copy = self
+    copy.trailingTrivia = .space
+    return copy
+  }
+  
+  var withTrailingNewline: Self
+  {
+    var copy = self
+    copy.trailingTrivia = .newline
+    return copy
   }
 }
 
@@ -83,7 +196,7 @@ public struct FakedImpMacro: ExtensionMacro
     throws -> [ExtensionDeclSyntax]
   {
     guard let protocolDec = declaration.as(ProtocolDeclSyntax.self)
-    else { throw Error.notAProtocol }
+    else { throw FakedError.notAProtocol }
     var firstVar = true
 
     let members = try protocolDec.memberBlock.members.map {
@@ -96,7 +209,7 @@ public struct FakedImpMacro: ExtensionMacro
         firstVar = true
         return try defaultFunctionImp(function)
       }
-      throw Error.invalidMember
+      throw FakedError.invalidMember
     }
     let memberBlock = MemberBlockSyntax(
         leftBrace: TokenSyntax(.leftBrace,
@@ -119,14 +232,14 @@ public struct FakedImpMacro: ExtensionMacro
                                  isFirst: Bool) throws -> VariableDeclSyntax
   {
     guard let binding = property.bindings.first
-    else { throw Error.bindingCount }
+    else { throw FakedError.bindingCount }
     let type = binding.typeAnnotation!.type.description
     let defaultValue: String
     
     if let type = binding.typeAnnotation?.type {
       if let typeIdentifier = type.as(IdentifierTypeSyntax.self) {
         guard let identifierDefault = defaultIdentifierValue(typeIdentifier)
-        else { throw Error.unhandledType }
+        else { throw FakedError.unhandledType }
         
         defaultValue = identifierDefault
       }
@@ -140,11 +253,11 @@ public struct FakedImpMacro: ExtensionMacro
         defaultValue = "nil"
       }
       else {
-        throw Error.unhandledType
+        throw FakedError.unhandledType
       }
     }
     else {
-      throw Error.unhandledType
+      throw FakedError.unhandledType
     }
     
     var decl = try VariableDeclSyntax(
@@ -208,5 +321,6 @@ public struct FakedImpMacro: ExtensionMacro
 struct FakedMacroPlugin: CompilerPlugin {
   let providingMacros: [Macro.Type] = [
     FakedMacro.self,
+    FakedImpMacro.self,
   ]
 }
