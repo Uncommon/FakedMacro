@@ -102,7 +102,7 @@ final class FakedMacroTests: XCTestCase
         @Faked protocol Thing {
           var x: Int? { get }
           var y: (any Identifiable)? { get }
-          func intfunc() -> Int?
+          func intFunc() -> Int?
           func idFunc() -> (any Identifiable)?
         }
         """,
@@ -110,14 +110,14 @@ final class FakedMacroTests: XCTestCase
         protocol Thing {
           var x: Int? { get }
           var y: (any Identifiable)? { get }
-          func intfunc() -> Int?
+          func intFunc() -> Int?
           func idFunc() -> (any Identifiable)?
         }
         
         protocol EmptyThing: Thing {
           var x: Int? { get }
           var y: (any Identifiable)? { get }
-          func intfunc() -> Int?
+          func intFunc() -> Int?
           func idFunc() -> (any Identifiable)?
         }
         
@@ -126,7 +126,7 @@ final class FakedMacroTests: XCTestCase
         extension EmptyThing {
           var x: Int? { nil }
           var y: (any Identifiable)? { nil }
-          func intfunc() -> Int? { nil }
+          func intFunc() -> Int? { nil }
           func idFunc() -> (any Identifiable)? { nil }
         }
         """,
@@ -158,7 +158,6 @@ final class FakedMacroTests: XCTestCase
         class NullThing: EmptyThing {}
         
         extension EmptyThing {
-        
           func intFunc() -> Int { 0 }
         }
         """,
@@ -197,8 +196,54 @@ final class FakedMacroTests: XCTestCase
         }
         
         extension EmptyThing {
-        
           func intFunc() -> Int { 0 }
+        }
+        """,
+        macros: testMacros
+    )
+    #else
+    throw XCTSkip("macros are only supported when running tests for the host platform")
+    #endif
+  }
+  
+  /// Example from Xit
+  func testWritingManagementCase() throws
+  {
+    #if canImport(FakedMacroMacros)
+    assertMacroExpansion(
+        """
+        @Faked
+        public protocol WritingManagement
+        {
+          /// True if the repository is currently performing a writing operation.
+          var isWriting: Bool { get }
+
+          /// Performs `block` with `isWriting` set to true. Throws an exception if
+          /// `isWriting` is already true.
+          func performWriting(_ block: (() throws -> Void)) throws
+        }
+        """,
+        expandedSource: """
+        public protocol WritingManagement
+        {
+          /// True if the repository is currently performing a writing operation.
+          var isWriting: Bool { get }
+
+          /// Performs `block` with `isWriting` set to true. Throws an exception if
+          /// `isWriting` is already true.
+          func performWriting(_ block: (() throws -> Void)) throws
+        }
+
+        protocol EmptyWritingManagement: WritingManagement {
+          var isWriting: Bool { get }
+          func performWriting(_ block: (() throws -> Void)) throws
+        }
+        
+        struct NullWritingManagement: EmptyWritingManagement {}
+        
+        extension EmptyWritingManagement {
+          var isWriting: Bool { false }
+          func performWriting(_ block: (() throws -> Void)) throws {}
         }
         """,
         macros: testMacros

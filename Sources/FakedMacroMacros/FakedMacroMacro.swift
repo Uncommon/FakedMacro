@@ -58,19 +58,21 @@ public struct FakedMacro: PeerMacro
         protocol \(raw: emptyProtocolName): \(raw: protocolName) {
         }
         """)
+    /// Includes newline at start
+    let indent = Trivia(pieces: protocolDec.memberBlock.members.first?
+      .decl.leadingTrivia.prefix { $0.isWhitespace } ?? [])
+    let indentSpace = Trivia(pieces: indent.filter { $0.isSpaceOrTab })
     let vars = protocolDec.memberBlock.members
         .map(\.decl)
-        .compactMap { $0.as(VariableDeclSyntax.self) }
+        .compactMap { $0.as(VariableDeclSyntax.self)?.withIndent(indent) }
     let funcs = protocolDec.memberBlock.members
         .map(\.decl)
-        .compactMap { $0.as(FunctionDeclSyntax.self) }
+        .compactMap { $0.as(FunctionDeclSyntax.self)?.withIndent(indent) }
     let assocs = protocolDec.memberBlock.members
         .map(\.decl)
         .compactMap { $0.as(AssociatedTypeDeclSyntax.self) }
     var concreteAssocTypes: [(String, String)] = []
-    let indentTrivia = Trivia(pieces: protocolDec.memberBlock.members.first?
-        .decl.leadingTrivia.filter(\.isSpaceOrTab) ?? [])
-    
+
     if case let .argumentList(arguments) = node.arguments,
        let types = arguments.first,
        let dict = types.expression.as(DictionaryExprSyntax.self),
@@ -132,7 +134,7 @@ public struct FakedMacro: PeerMacro
     
     for type in concreteAssocTypes {
       let member = MemberBlockItemSyntax(
-          leadingTrivia: indentTrivia,
+        leadingTrivia: indentSpace,
           decl: try TypeAliasDeclSyntax("typealias \(raw: type.0) = \(raw: type.1)"),
           trailingTrivia: .newline)
       
@@ -181,6 +183,34 @@ extension SyntaxProtocol
     copy.trailingTrivia = .newline
     return copy
   }
+  
+  var commentsStripped: Self
+  {
+    var copy = self
+    copy.leadingTrivia = Trivia(pieces: leadingTrivia.filter { !$0.isComment })
+    copy.trailingTrivia = Trivia(pieces: trailingTrivia.filter { !$0.isComment })
+    return copy
+  }
+  
+  func withIndent(_ indent: Trivia) -> Self
+  {
+    var copy = self
+    copy.leadingTrivia = indent
+    return copy
+  }
+}
+
+extension TriviaPiece
+{
+  var isComment: Bool
+  {
+    switch self {
+      case .blockComment, .docBlockComment, .lineComment, .docLineComment:
+        return true
+      default:
+        return false
+    }
+  }
 }
 
 public struct FakedImpMacro: ExtensionMacro
@@ -217,9 +247,8 @@ public struct FakedImpMacro: ExtensionMacro
                                trailingTrivia: .newline,
                                presence: .present),
         rightBrace: TokenSyntax(.rightBrace,
-                                leadingTrivia: .newline,
                                 presence: .present)) {
-      for member in members { member }
+      for member in members { member.withTrailingNewline }
     }
     
     return [ExtensionDeclSyntax(
@@ -265,11 +294,10 @@ public struct FakedImpMacro: ExtensionMacro
         var \(binding.pattern.detached): \(raw: type){ \(raw: defaultValue) }
       """
       )
-    var trivia = property.bindingSpecifier.leadingTrivia
+    let trivia = Trivia(pieces: 
+        property.bindingSpecifier.leadingTrivia.pieces
+        .filter { !$0.isNewline })
     
-    if isFirst {
-      trivia = Trivia(pieces: trivia.pieces.filter { !$0.isNewline })
-    }
     decl.bindingSpecifier = .keyword(.var,
                                      leadingTrivia: trivia,
                                      trailingTrivia: .space)
@@ -301,6 +329,10 @@ public struct FakedImpMacro: ExtensionMacro
                       statements: .init(
                         stringLiteral: defaultValue.isEmpty ? "" :
                           " \(defaultValue) "))
+    
+    copy.leadingTrivia =
+        Trivia(pieces: copy.leadingTrivia.filter { !$0.isNewline })
+    
     return copy
   }
   
