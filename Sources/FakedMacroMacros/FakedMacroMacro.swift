@@ -18,13 +18,13 @@ public struct FakedMacro: PeerMacro
     else { throw FakedError.notAProtocol }
     let protocolName = protocolDec.name.text
     let emptyProtocolName = "Empty\(protocolName)"
-    /// Includes newline at start
-    let indent = Trivia(pieces: protocolDec.memberBlock.members.first?
-      .decl.leadingTrivia.prefix { $0.isWhitespace } ?? [])
+    let indentWithNewline = Trivia(pieces:
+        protocolDec.memberBlock.members.first?
+        .decl.leadingTrivia.prefix { $0.isWhitespace } ?? [])
     let assocs = protocolDec.memberBlock.members
         .map(\.decl)
         .compactMap { $0.as(AssociatedTypeDeclSyntax.self) }
-    var concreteAssocTypes: [(String, String)] = []
+    var concreteAssocTypes: [String: String] = [:]
 
     if case let .argumentList(arguments) = node.arguments,
        let types = arguments.first,
@@ -42,8 +42,7 @@ public struct FakedMacro: PeerMacro
           return []
         }
         
-        concreteAssocTypes.append((substituteName,
-                                   typeName.baseName.text))
+        concreteAssocTypes[substituteName] = typeName.baseName.text
       }
     }
 
@@ -64,11 +63,11 @@ public struct FakedMacro: PeerMacro
 
     let emptyProtocol = try createEmptyProtocol(
         protocolDec: protocolDec,
-        indent: indent,
+        indent: indentWithNewline,
         emptyProtocolName: emptyProtocolName)
     let nullType = try createNullType(
         protocolDec: protocolDec,
-        indent: indent,
+        indent: indentWithNewline,
         concreteAssocTypes: concreteAssocTypes,
         emptyProtocolName: emptyProtocolName)
 
@@ -109,7 +108,7 @@ public struct FakedMacro: PeerMacro
   static func createNullType(
       protocolDec: ProtocolDeclSyntax,
       indent: Trivia,
-      concreteAssocTypes: [(String, String)],
+      concreteAssocTypes: [String: String],
       emptyProtocolName: String) throws -> any DeclSyntaxProtocol
   {
     let protocolName = protocolDec.name.text
@@ -135,11 +134,13 @@ public struct FakedMacro: PeerMacro
         leftBrace: .leftBraceToken(trailingTrivia: braceTrivia),
         members: [])
     
-    for type in concreteAssocTypes {
+    // Sort keys to get predictable results
+    for type in concreteAssocTypes.sorted(by: { $0.key < $1.key }) {
       let member = MemberBlockItemSyntax(
-        leadingTrivia: indentSpace,
-          decl: try TypeAliasDeclSyntax("typealias \(raw: type.0) = \(raw: type.1)"),
-          trailingTrivia: .newline)
+          leadingTrivia: indentSpace,
+            decl: try TypeAliasDeclSyntax(
+                "typealias \(raw: type.key) = \(raw: type.value)"),
+            trailingTrivia: .newline)
       
       nullMemberBlock.members.append(member)
     }
