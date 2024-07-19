@@ -53,20 +53,9 @@ public struct FakedMacro: PeerMacro
     else { throw FakedError.notAProtocol }
     let protocolName = protocolDec.name.text
     let emptyProtocolName = "Empty\(protocolName)"
-    var emptyProtocol = try ProtocolDeclSyntax(
-        """
-        protocol \(raw: emptyProtocolName): \(raw: protocolName) {
-        }
-        """)
     /// Includes newline at start
     let indent = Trivia(pieces: protocolDec.memberBlock.members.first?
       .decl.leadingTrivia.prefix { $0.isWhitespace } ?? [])
-    let vars = protocolDec.memberBlock.members
-        .map(\.decl)
-        .compactMap { $0.as(VariableDeclSyntax.self)?.withIndent(indent) }
-    let funcs = protocolDec.memberBlock.members
-        .map(\.decl)
-        .compactMap { $0.as(FunctionDeclSyntax.self)?.withIndent(indent) }
     let assocs = protocolDec.memberBlock.members
         .map(\.decl)
         .compactMap { $0.as(AssociatedTypeDeclSyntax.self) }
@@ -107,6 +96,38 @@ public struct FakedMacro: PeerMacro
         return []
       }
     }
+
+    let emptyProtocol = try createEmptyProtocol(
+        protocolDec: protocolDec,
+        indent: indent,
+        emptyProtocolName: emptyProtocolName)
+    let nullType = try createNullType(
+        protocolDec: protocolDec,
+        indent: indent,
+        concreteAssocTypes: concreteAssocTypes,
+        emptyProtocolName: emptyProtocolName)
+
+    return [DeclSyntax(emptyProtocol),
+            DeclSyntax(nullType)]
+  }
+  
+  static func createEmptyProtocol(
+      protocolDec: ProtocolDeclSyntax,
+      indent: Trivia,
+      emptyProtocolName: String) throws -> ProtocolDeclSyntax
+  {
+    let protocolName = protocolDec.name.text
+    let vars = protocolDec.memberBlock.members
+        .map(\.decl)
+        .compactMap { $0.as(VariableDeclSyntax.self)?.withIndent(indent) }
+    let funcs = protocolDec.memberBlock.members
+        .map(\.decl)
+        .compactMap { $0.as(FunctionDeclSyntax.self)?.withIndent(indent) }
+    var emptyProtocol = try ProtocolDeclSyntax(
+        """
+        protocol \(raw: emptyProtocolName): \(raw: protocolName) {
+        }
+        """)
     
     emptyProtocol.attributes.append(.attribute(
         .init(stringLiteral: "@Faked_Imp ")))
@@ -117,14 +138,7 @@ public struct FakedMacro: PeerMacro
       for function in funcs { function }
     }
     
-    let nullType = try createNullType(
-        protocolDec: protocolDec,
-        indent: indent,
-        concreteAssocTypes: concreteAssocTypes,
-        emptyProtocolName: emptyProtocolName)
-
-    return [DeclSyntax(emptyProtocol),
-            DeclSyntax(nullType)]
+    return emptyProtocol
   }
   
   static func createNullType(
