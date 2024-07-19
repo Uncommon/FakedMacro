@@ -3,41 +3,24 @@ import SwiftSyntax
 
 extension SyntaxProtocol
 {
-  var withLeadingSpace: Self
+  func copy<T>(with path: WritableKeyPath<Self, T>, as value: T) -> Self
   {
     var copy = self
-    copy.leadingTrivia = .space
+    copy[keyPath: path] = value
     return copy
   }
+  
+  var withLeadingSpace: Self
+  { copy(with: \.leadingTrivia, as: .space) }
 
   var withTrailingSpace: Self
-  {
-    var copy = self
-    copy.trailingTrivia = .space
-    return copy
-  }
-  
+  { copy(with: \.trailingTrivia, as: .space) }
+
   var withTrailingNewline: Self
-  {
-    var copy = self
-    copy.trailingTrivia = .newline
-    return copy
-  }
-  
-  var commentsStripped: Self
-  {
-    var copy = self
-    copy.leadingTrivia = Trivia(pieces: leadingTrivia.filter { !$0.isComment })
-    copy.trailingTrivia = Trivia(pieces: trailingTrivia.filter { !$0.isComment })
-    return copy
-  }
+  { copy(with: \.trailingTrivia, as: .newline) }
   
   func withIndent(_ indent: Trivia) -> Self
-  {
-    var copy = self
-    copy.leadingTrivia = indent
-    return copy
-  }
+  { copy(with: \.leadingTrivia, as: indent) }
 }
 
 extension TriviaPiece
