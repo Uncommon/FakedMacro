@@ -53,7 +53,7 @@ public struct FakedMacro: PeerMacro
     else { throw FakedError.notAProtocol }
     let protocolName = protocolDec.name.text
     let emptyProtocolName = "Empty\(protocolName)"
-    var emptyProtocol = try SwiftSyntax.ProtocolDeclSyntax(
+    var emptyProtocol = try ProtocolDeclSyntax(
         """
         protocol \(raw: emptyProtocolName): \(raw: protocolName) {
         }
@@ -61,7 +61,6 @@ public struct FakedMacro: PeerMacro
     /// Includes newline at start
     let indent = Trivia(pieces: protocolDec.memberBlock.members.first?
       .decl.leadingTrivia.prefix { $0.isWhitespace } ?? [])
-    let indentSpace = Trivia(pieces: indent.filter { $0.isSpaceOrTab })
     let vars = protocolDec.memberBlock.members
         .map(\.decl)
         .compactMap { $0.as(VariableDeclSyntax.self)?.withIndent(indent) }
@@ -118,6 +117,24 @@ public struct FakedMacro: PeerMacro
       for function in funcs { function }
     }
     
+    let nullType = try createNullType(
+        protocolDec: protocolDec,
+        indent: indent,
+        concreteAssocTypes: concreteAssocTypes,
+        emptyProtocolName: emptyProtocolName)
+
+    return [DeclSyntax(emptyProtocol),
+            DeclSyntax(nullType)]
+  }
+  
+  static func createNullType(
+      protocolDec: ProtocolDeclSyntax,
+      indent: Trivia,
+      concreteAssocTypes: [(String, String)],
+      emptyProtocolName: String) throws -> any DeclSyntaxProtocol
+  {
+    let protocolName = protocolDec.name.text
+    let indentSpace = Trivia(pieces: indent.filter { $0.isSpaceOrTab })
     let isAnyObject = protocolDec.inheritanceClause?.inheritedTypes.contains {
       if let identifier = $0.type.as(IdentifierTypeSyntax.self),
          identifier.name.text == "AnyObject" {
@@ -127,6 +144,13 @@ public struct FakedMacro: PeerMacro
         return false
       }
     } ?? false
+    let nullIdentifier: TokenSyntax = .identifier("Null\(protocolName)")
+                                      .withLeadingSpace
+    let inheritance = InheritanceClauseSyntax(
+      colon: .colonToken(trailingTrivia: .space)) {
+      InheritedTypeSyntax(type: TypeSyntax(stringLiteral: emptyProtocolName),
+                          trailingTrivia: .space)
+    }
     let braceTrivia: Trivia = concreteAssocTypes.isEmpty ? [] : .newline
     var nullMemberBlock = MemberBlockSyntax(
         leftBrace: .leftBraceToken(trailingTrivia: braceTrivia),
@@ -140,24 +164,14 @@ public struct FakedMacro: PeerMacro
       
       nullMemberBlock.members.append(member)
     }
-    
-    let nullIdentifier: TokenSyntax = .identifier("Null\(protocolName)")
-                                      .withLeadingSpace
-    let inheritance = InheritanceClauseSyntax(
-      colon: .colonToken(trailingTrivia: .space)) {
-      InheritedTypeSyntax(type: TypeSyntax(stringLiteral: emptyProtocolName),
-                          trailingTrivia: .space)
-    }
-    let nullType: any DeclSyntaxProtocol = isAnyObject
+
+    return isAnyObject
         ? ClassDeclSyntax(name: nullIdentifier,
                           inheritanceClause: inheritance,
                           memberBlock: nullMemberBlock)
         : StructDeclSyntax(name: nullIdentifier,
                            inheritanceClause: inheritance,
                            memberBlock: nullMemberBlock)
-    
-    return [DeclSyntax(emptyProtocol),
-            DeclSyntax(nullType)]
   }
 }
 
