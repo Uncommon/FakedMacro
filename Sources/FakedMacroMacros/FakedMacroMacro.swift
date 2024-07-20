@@ -21,9 +21,6 @@ public struct FakedMacro: PeerMacro
     let indentWithNewline = Trivia(pieces:
         protocolDec.memberBlock.members.first?
         .decl.leadingTrivia.prefix { $0.isWhitespace } ?? [])
-    let assocs = protocolDec.memberBlock.members
-        .map(\.decl)
-        .compactMap { $0.as(AssociatedTypeDeclSyntax.self) }
     var concreteAssocTypes: [String: String] = [:]
 
     if case let .argumentList(arguments) = node.arguments,
@@ -43,21 +40,6 @@ public struct FakedMacro: PeerMacro
         }
         
         concreteAssocTypes[substituteName] = typeName.baseName.text
-      }
-    }
-
-    if assocs.isEmpty {
-      guard concreteAssocTypes.isEmpty
-      else {
-        context.diagnose(.init(node: node, message: FakedError.typesMissing))
-        return []
-      }
-    }
-    else {
-      guard concreteAssocTypes.count == assocs.count
-      else {
-        context.diagnose(.init(node: node, message: FakedError.typesMismatch))
-        return []
       }
     }
 
@@ -133,15 +115,21 @@ public struct FakedMacro: PeerMacro
     var nullMemberBlock = MemberBlockSyntax(
         leftBrace: .leftBraceToken(trailingTrivia: braceTrivia),
         members: [])
+    let assocs = protocolDec.memberBlock.members
+        .map(\.decl)
+        .compactMap { $0.as(AssociatedTypeDeclSyntax.self) }
     
-    // Sort keys to get predictable results
-    for type in concreteAssocTypes.sorted(by: { $0.key < $1.key }) {
+    // TODO: warn if specified types don't match associated types
+    
+    for type in assocs {
+      let name = type.name.text
+      let alias = concreteAssocTypes[name] ?? "Null" + name
       let member = MemberBlockItemSyntax(
           leadingTrivia: indentSpace,
             decl: try TypeAliasDeclSyntax(
-                "typealias \(raw: type.key) = \(raw: type.value)"),
+                "typealias \(raw: name) = \(raw: alias)"),
             trailingTrivia: .newline)
-      
+
       nullMemberBlock.members.append(member)
     }
 

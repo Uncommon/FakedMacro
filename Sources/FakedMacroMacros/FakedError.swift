@@ -6,8 +6,6 @@ enum FakedError: Swift.Error, DiagnosticMessage
   case bindingCount
   case notAProtocol
   case invalidMember
-  case typesMissing
-  case typesMismatch
   case unhandledType
   case wrongTypeSpecifier
 
@@ -20,10 +18,6 @@ enum FakedError: Swift.Error, DiagnosticMessage
         "Macro must be attached to a protocol"
       case .invalidMember:
         "Unsupported protocol member found"
-      case .typesMissing:
-        "Types not specified for protocol with associated types"
-      case .typesMismatch:
-        "Types count does not match associated types count"
       case .unhandledType:
         "Result type not supported"
       case .wrongTypeSpecifier:

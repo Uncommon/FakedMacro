@@ -176,6 +176,7 @@ final class FakedMacroTests: XCTestCase
         @Faked(types: ["X": Int.self, "Y": String.self]) protocol Thing {
           associatedtype X
           associatedtype Y
+          associatedtype Z
           func intFunc() -> Int
         }
         """,
@@ -183,6 +184,7 @@ final class FakedMacroTests: XCTestCase
         protocol Thing {
           associatedtype X
           associatedtype Y
+          associatedtype Z
           func intFunc() -> Int
         }
         
@@ -193,6 +195,7 @@ final class FakedMacroTests: XCTestCase
         struct NullThing: EmptyThing {
           typealias X = Int
           typealias Y = String
+          typealias Z = NullZ
         }
         
         extension EmptyThing {
