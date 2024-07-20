@@ -111,14 +111,14 @@ public struct FakedMacro: PeerMacro
       InheritedTypeSyntax(type: TypeSyntax(stringLiteral: emptyProtocolName),
                           trailingTrivia: .space)
     }
-    let braceTrivia: Trivia = concreteAssocTypes.isEmpty ? [] : .newline
-    var nullMemberBlock = MemberBlockSyntax(
-        leftBrace: .leftBraceToken(trailingTrivia: braceTrivia),
-        members: [])
     let assocs = protocolDec.memberBlock.members
         .map(\.decl)
         .compactMap { $0.as(AssociatedTypeDeclSyntax.self) }
-    
+    let braceTrivia: Trivia = assocs.isEmpty ? [] : .newline
+    var nullMemberBlock = MemberBlockSyntax(
+        leftBrace: .leftBraceToken(trailingTrivia: braceTrivia),
+        members: [])
+
     // TODO: warn if specified types don't match associated types
     
     for type in assocs {

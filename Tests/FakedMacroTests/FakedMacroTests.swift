@@ -177,6 +177,8 @@ final class FakedMacroTests: XCTestCase
           associatedtype X
           associatedtype Y
           associatedtype Z
+        
+          var x: Int { get }
           func intFunc() -> Int
         }
         """,
@@ -185,10 +187,13 @@ final class FakedMacroTests: XCTestCase
           associatedtype X
           associatedtype Y
           associatedtype Z
+        
+          var x: Int { get }
           func intFunc() -> Int
         }
         
         protocol EmptyThing: Thing {
+          var x: Int { get }
           func intFunc() -> Int
         }
         
@@ -199,6 +204,7 @@ final class FakedMacroTests: XCTestCase
         }
         
         extension EmptyThing {
+          var x: Int { 0 }
           func intFunc() -> Int { 0 }
         }
         """,
@@ -247,6 +253,44 @@ final class FakedMacroTests: XCTestCase
         extension EmptyWritingManagement {
           var isWriting: Bool { false }
           func performWriting(_ block: (() throws -> Void)) throws {}
+        }
+        """,
+        macros: testMacros
+    )
+    #else
+    throw XCTSkip("macros are only supported when running tests for the host platform")
+    #endif
+  }
+  
+  func testAssocTypeNotSpecified() throws
+  {
+    #if canImport(FakedMacroMacros)
+    assertMacroExpansion(
+        """
+        @Faked
+        public protocol Thing: AnyObject
+        {
+          associatedtype Sequence: Swift.Sequence
+          func perform()
+        }
+        """,
+        expandedSource: """
+        public protocol Thing: AnyObject
+        {
+          associatedtype Sequence: Swift.Sequence
+          func perform()
+        }
+
+        protocol EmptyThing: Thing {
+          func perform()
+        }
+        
+        class NullThing: EmptyThing {
+          typealias Sequence = NullSequence
+        }
+        
+        extension EmptyThing {
+          func perform() {}
         }
         """,
         macros: testMacros

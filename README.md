@@ -43,23 +43,25 @@ struct FakeThing: EmptyThing {
 
 ### Associated types
 
-If the protocol has associated types, you will need to specify which concrete types to use in the "Null" type. This is done with the `types` parameter:
+If the protocol has associated types, you can to specify which concrete types to use in the "Null" type. By default, a "Null" prefix will be added. This is done with the `types` parameter:
 
-```
+```swift
 @Faked(types: ["X": Int.self, "Y": String.self])
 protocol Thing {
     associatedtype X
     associatedtype Y
+    associatedType Z
     func intFunc() -> Int
 }
 ```
 
 The resulting concrete type will be:
 
-```
+```swift
 struct NullThing: EmptyThing {
     typealias X = Int
     typealias Y = String
+    typealias Z = NullZ  // not specified, defaults to "Null" prefix
 }
 ```
 
