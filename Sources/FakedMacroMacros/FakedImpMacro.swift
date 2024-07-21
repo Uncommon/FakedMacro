@@ -55,24 +55,8 @@ public struct FakedImpMacro: ExtensionMacro
     let defaultValue: String
     
     if let type = binding.typeAnnotation?.type {
-      if let typeIdentifier = type.as(IdentifierTypeSyntax.self) {
-        guard let identifierDefault = defaultIdentifierValue(typeIdentifier)
-        else { throw FakedError.unhandledType }
-        
-        defaultValue = identifierDefault
-      }
-      else if type.is(ArrayTypeSyntax.self) {
-        defaultValue = "[]"
-      }
-      else if type.is(DictionaryTypeSyntax.self) {
-        defaultValue = "[:]"
-      }
-      else if type.is(OptionalTypeSyntax.self) {
-        defaultValue = "nil"
-      }
-      else {
-        throw FakedError.unhandledType
-      }
+      defaultValue = try Self.defaultValue(for: type) ??
+        { throw FakedError.unhandledType }()
     }
     else {
       throw FakedError.unhandledType
@@ -93,23 +77,30 @@ public struct FakedImpMacro: ExtensionMacro
     return decl
   }
   
+  static func defaultValue(for type: TypeSyntax) -> String?
+  {
+    if let identifier = type.as(IdentifierTypeSyntax.self) {
+      return defaultIdentifierValue(identifier) ?? ""
+    }
+    else if type.is(ArrayTypeSyntax.self) {
+      return "[]"
+    }
+    else if type.is(DictionaryTypeSyntax.self) {
+      return "[:]"
+    }
+    else if type.is(OptionalTypeSyntax.self) {
+      return "nil"
+    }
+    return nil
+  }
+  
   static func defaultFunctionImp(_ function: FunctionDeclSyntax) throws -> FunctionDeclSyntax
   {
     var defaultValue = ""
     
     if let clause = function.signature.returnClause {
-      if let identifier = clause.type.as(IdentifierTypeSyntax.self) {
-        defaultValue = defaultIdentifierValue(identifier) ?? ""
-      }
-      else if clause.type.is(ArrayTypeSyntax.self) {
-        defaultValue = "[]"
-      }
-      else if clause.type.is(DictionaryTypeSyntax.self) {
-        defaultValue = "[:]"
-      }
-      else if clause.type.is(OptionalTypeSyntax.self) {
-        defaultValue = "nil"
-      }
+      defaultValue = try Self.defaultValue(for: clause.type) ??
+        { throw FakedError.unhandledType }()
     }
     
     var copy = function
