@@ -344,4 +344,43 @@ final class FakedMacroTests: XCTestCase
     throw XCTSkip("macros are only supported when running tests for the host platform")
     #endif
   }
+  
+  func testOtherCollections() throws
+  {
+    #if canImport(FakedMacroMacros)
+    assertMacroExpansion(
+        """
+        @Faked
+        public protocol Thing: AnyObject
+        {
+          func makeSet() -> Set<Int>
+          func makeSequence() -> AnySequence<Int>
+        }
+        """,
+        expandedSource: """
+        public protocol Thing: AnyObject
+        {
+          func makeSet() -> Set<Int>
+          func makeSequence() -> AnySequence<Int>
+        }
+
+        protocol EmptyThing: Thing {
+          func makeSet() -> Set<Int>
+          func makeSequence() -> AnySequence<Int>
+        }
+        
+        class NullThing: EmptyThing {}
+        
+        extension EmptyThing {
+          func makeSet() -> Set<Int> { [] }
+          func makeSequence() -> AnySequence<Int> { .init(Array<Int>()) }
+        }
+        """,
+        macros: testMacros
+    )
+    #else
+    throw XCTSkip("macros are only supported when running tests for the host platform")
+    #endif
+  }
+
 }

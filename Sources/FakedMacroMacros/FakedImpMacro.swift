@@ -128,14 +128,24 @@ public struct FakedImpMacro: ExtensionMacro
   static func defaultIdentifierValue(_ identifier: IdentifierTypeSyntax) -> String?
   {
     switch identifier.name.text {
-      case "Int", "UInt", "Float", "Double":
-        "0"
+      case "Int", "Float", "Double",
+           "UInt", "UInt8", "UInt16", "UInt32", "UInt64", "UInt128",
+           "Int8", "Int16", "Int32", "Int64", "Int128",
+           "Float16", "Float32", "Float64", "Float80":
+        return "0"
       case "String":
-        #""""#
+        return #""""#
       case "Bool":
-        "false"
+        return "false"
+      case "Set": // skip checking the generic clause
+        return "[]"
+      case "AnySequence":
+        guard let generic = identifier.genericArgumentClause,
+              let first = generic.arguments.first?.argument.as(IdentifierTypeSyntax.self)
+        else { return nil }
+        return ".init(Array<\(first.name.text)>())"
       default:
-        nil
+        return nil
     }
   }
 }
