@@ -48,6 +48,8 @@ public struct FakedMacro: PeerMacro
         indent: indentWithNewline,
         emptyProtocolName: emptyProtocolName)
     let nullType = try createNullType(
+        in: context,
+        node: node,
         protocolDec: protocolDec,
         indent: indentWithNewline,
         concreteAssocTypes: concreteAssocTypes,
@@ -88,6 +90,8 @@ public struct FakedMacro: PeerMacro
   }
   
   static func createNullType(
+      in context: some SwiftSyntaxMacros.MacroExpansionContext,
+      node: SwiftSyntax.AttributeSyntax,
       protocolDec: ProtocolDeclSyntax,
       indent: Trivia,
       concreteAssocTypes: [String: String],
@@ -118,8 +122,15 @@ public struct FakedMacro: PeerMacro
     var nullMemberBlock = MemberBlockSyntax(
         leftBrace: .leftBraceToken(trailingTrivia: braceTrivia),
         members: [])
+    let associatedNames = assocs.map { $0.name.text }
 
-    // TODO: warn if specified types don't match associated types
+    for mismatchedKey in concreteAssocTypes.keys.filter({
+      !associatedNames.contains($0)
+    }) {
+      context.diagnose(
+        .init(node: node,
+              message: FakedWarning.typeNotFound(mismatchedKey)))
+    }
     
     for type in assocs {
       let name = type.name.text

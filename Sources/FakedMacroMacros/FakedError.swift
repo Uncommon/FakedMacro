@@ -29,3 +29,21 @@ enum FakedError: Swift.Error, DiagnosticMessage
   
   var severity: DiagnosticSeverity { .error }
 }
+
+enum FakedWarning: DiagnosticMessage
+{
+  case typeNotFound(String)
+  
+  var message: String
+  {
+    switch self {
+      case .typeNotFound(let type):
+        "Associated type \(type) not found"
+    }
+  }
+  
+  var severity: DiagnosticSeverity { .warning }
+  
+  var diagnosticID: MessageID
+  { .init(domain: "FakedMacro", id: "warn-\(self)") }
+}
