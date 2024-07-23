@@ -4,8 +4,10 @@ import SwiftDiagnostics
 enum FakedError: Swift.Error, DiagnosticMessage
 {
   case bindingCount
+  case defaultVarFunc
   case notAProtocol
   case invalidMember
+  case invalidDefault
   case unhandledType
   case wrongTypeSpecifier
 
@@ -14,10 +16,14 @@ enum FakedError: Swift.Error, DiagnosticMessage
     switch self {
       case .bindingCount:
         "Each `var` must have exactly one binding"
+      case .defaultVarFunc:
+        "FakeDefault macro must be attached to a var or func declaration"
       case .notAProtocol:
         "Macro must be attached to a protocol"
       case .invalidMember:
         "Unsupported protocol member found"
+      case .invalidDefault:
+        "Invalid default value"
       case .unhandledType:
         "Result type not supported"
       case .wrongTypeSpecifier:

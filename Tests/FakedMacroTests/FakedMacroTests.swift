@@ -12,6 +12,7 @@ import FakedMacroMacros
 let testMacros: [String: Macro.Type] = [
     "Faked": FakedMacro.self,
     "Faked_Imp": FakedImpMacro.self,
+    "FakeDefault": FakeDefaultMacro.self,
 ]
 #endif
 
@@ -383,4 +384,61 @@ final class FakedMacroTests: XCTestCase
     #endif
   }
 
+  func testDefaultMacro() throws
+  {
+    #if canImport(FakedMacroMacros)
+    assertMacroExpansion(
+        """
+        @Faked
+        public protocol Thing: AnyObject
+        {
+          @FakeDefault(1) var x: Int
+          @FakeDefault(true) func determine() -> Bool
+        }
+        """,
+        expandedSource: """
+        public protocol Thing: AnyObject
+        {
+          var x: Int
+          func determine() -> Bool
+        }
+
+        protocol EmptyThing: Thing {
+          var x: Int
+          func determine() -> Bool
+        }
+        
+        class NullThing: EmptyThing {}
+        
+        extension EmptyThing {
+          var x: Int { 1 }
+          func determine() -> Bool { true }
+        }
+        """,
+        macros: testMacros
+    )
+    #else
+    throw XCTSkip("macros are only supported when running tests for the host platform")
+    #endif
+  }
+  
+  func testDefaultWrongType() throws
+  {
+    #if canImport(FakedMacroMacros)
+    assertMacroExpansion(
+        """
+        @FakeDefault(0)
+        struct Wrong {}
+        """,
+        expandedSource: """
+        struct Wrong {}
+        """,
+        diagnostics: [.init(message: FakedError.defaultVarFunc.message,
+                            line: 1, column: 1)],
+        macros: testMacros
+    )
+    #else
+    throw XCTSkip("macros are only supported when running tests for the host platform")
+    #endif
+  }
 }

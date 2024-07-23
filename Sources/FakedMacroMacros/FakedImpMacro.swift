@@ -28,7 +28,8 @@ public struct FakedImpMacro: ExtensionMacro
         firstVar = true
         return try defaultFunctionImp(function)
       }
-      throw FakedError.invalidMember
+      context.diagnose(.init(node: member, message: FakedError.unhandledType))
+      throw FakedError.unhandledType
     }
     let memberBlock = MemberBlockSyntax(
         leftBrace: TokenSyntax(.leftBrace,
@@ -51,10 +52,13 @@ public struct FakedImpMacro: ExtensionMacro
   {
     guard let binding = property.bindings.first
     else { throw FakedError.bindingCount }
-    let type = binding.typeAnnotation!.type.description
+    let type = binding.typeAnnotation!.type.trimmedDescription
     let defaultValue: String
     
-    if let type = binding.typeAnnotation?.type {
+    if let defaultMacro = try defaultMacroValue(for: property.attributes) {
+      defaultValue = defaultMacro
+    }
+    else if let type = binding.typeAnnotation?.type {
       defaultValue = try Self.defaultValue(for: type) ??
         { throw FakedError.unhandledType }()
     }
@@ -64,11 +68,11 @@ public struct FakedImpMacro: ExtensionMacro
     
     var decl = try VariableDeclSyntax(
       """
-        var \(binding.pattern.detached): \(raw: type){ \(raw: defaultValue) }
+        var \(binding.pattern.detached): \(raw: type) { \(raw: defaultValue) }
       """
       )
     let trivia = Trivia(pieces:
-        property.bindingSpecifier.leadingTrivia.pieces
+        property.leadingTrivia.pieces
         .filter { !$0.isNewline })
     
     decl.bindingSpecifier = .keyword(.var,
@@ -77,6 +81,37 @@ public struct FakedImpMacro: ExtensionMacro
     return decl
   }
   
+  /// Returns the value from a @FakeDefault macro, if any
+  static func defaultMacroValue(for attributes: AttributeListSyntax) throws
+    -> String?
+  {
+    if let defaultMacro = attributes
+        .compactMap({
+          (attribute: AttributeListSyntax.Element) -> AttributeSyntax? in
+          if case let .attribute(attribute) = attribute {
+            return attribute
+          }
+          else {
+            return nil
+          }
+        })
+        .first(where: {
+          return $0.attributeName.trimmedDescription == "FakeDefault"
+        }) {
+      if case let .argumentList(args) = defaultMacro.arguments,
+         let firstArg = args.first {
+        return firstArg.expression.trimmedDescription
+      }
+      else {
+        throw FakedError.invalidDefault
+      }
+    }
+    else {
+      return nil
+    }
+  }
+  
+  /// Returns the standard default value for the given type
   static func defaultValue(for type: TypeSyntax) -> String?
   {
     if let identifier = type.as(IdentifierTypeSyntax.self) {
@@ -99,19 +134,29 @@ public struct FakedImpMacro: ExtensionMacro
     var defaultValue = ""
     
     if let clause = function.signature.returnClause {
-      defaultValue = try Self.defaultValue(for: clause.type) ??
-        { throw FakedError.unhandledType }()
+      defaultValue = try
+          defaultMacroValue(for: function.attributes) ??
+          Self.defaultValue(for: clause.type) ??
+          { throw FakedError.unhandledType }()
     }
     
     var copy = function
+    let leadingTrivia = copy.attributes.isEmpty ?
+        copy.leadingTrivia : copy.attributes.leadingTrivia
     
     copy.body = .init(leadingTrivia: .space,
                       statements: .init(
                         stringLiteral: defaultValue.isEmpty ? "" :
                           " \(defaultValue) "))
-    
+    copy.attributes = copy.attributes.filter {
+      switch $0 {
+        case let .attribute(attribute):
+          attribute.attributeName.trimmedDescription != "FakeDefault"
+        default: true
+      }
+    }
     copy.leadingTrivia =
-        Trivia(pieces: copy.leadingTrivia.filter { !$0.isNewline })
+        Trivia(pieces: leadingTrivia.filter { !$0.isNewline })
     
     return copy
   }
