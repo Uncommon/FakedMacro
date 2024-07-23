@@ -58,12 +58,12 @@ public struct FakedImpMacro: ExtensionMacro
     if let defaultMacro = try defaultMacroValue(for: property.attributes) {
       defaultValue = defaultMacro
     }
-    else if let type = binding.typeAnnotation?.type {
-      defaultValue = try Self.defaultValue(for: type) ??
-        { throw FakedError.unhandledType }()
+    else if let type = binding.typeAnnotation?.type,
+            let typeDefault = Self.defaultValue(for: type) {
+      defaultValue = typeDefault
     }
     else {
-      throw FakedError.unhandledType
+      defaultValue = ".fakeDefault()"
     }
     
     var decl = try VariableDeclSyntax(
@@ -115,7 +115,7 @@ public struct FakedImpMacro: ExtensionMacro
   static func defaultValue(for type: TypeSyntax) -> String?
   {
     if let identifier = type.as(IdentifierTypeSyntax.self) {
-      return defaultIdentifierValue(identifier) ?? ""
+      return defaultIdentifierValue(identifier)
     }
     else if type.is(ArrayTypeSyntax.self) {
       return "[]"
@@ -137,7 +137,7 @@ public struct FakedImpMacro: ExtensionMacro
       defaultValue = try
           defaultMacroValue(for: function.attributes) ??
           Self.defaultValue(for: clause.type) ??
-          { throw FakedError.unhandledType }()
+          ".fakeDefault()"
     }
     
     var copy = function

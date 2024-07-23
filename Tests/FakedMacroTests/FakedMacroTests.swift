@@ -441,4 +441,58 @@ final class FakedMacroTests: XCTestCase
     throw XCTSkip("macros are only supported when running tests for the host platform")
     #endif
   }
+  
+  func testVariousDefaults() throws
+  {
+    #if canImport(FakedMacroMacros)
+    assertMacroExpansion(
+        """
+        @Faked
+        public protocol Thing: AnyObject
+        {
+          @FakeDefault(1) var x: Int
+          var y: String
+          var z: Unknown
+          @FakeDefault(1) func a() -> Int
+          func b() -> String
+          func z() -> Unknown
+        }
+        """,
+        expandedSource: """
+        public protocol Thing: AnyObject
+        {
+          var x: Int
+          var y: String
+          var z: Unknown
+          func a() -> Int
+          func b() -> String
+          func z() -> Unknown
+        }
+
+        protocol EmptyThing: Thing {
+          var x: Int
+          var y: String
+          var z: Unknown
+          func a() -> Int
+          func b() -> String
+          func z() -> Unknown
+        }
+        
+        class NullThing: EmptyThing {}
+        
+        extension EmptyThing {
+          var x: Int { 1 }
+          var y: String { "" }
+          var z: Unknown { .fakeDefault() }
+          func a() -> Int { 1 }
+          func b() -> String { "" }
+          func z() -> Unknown { .fakeDefault() }
+        }
+        """,
+        macros: testMacros
+    )
+    #else
+    throw XCTSkip("macros are only supported when running tests for the host platform")
+    #endif
+  }
 }
