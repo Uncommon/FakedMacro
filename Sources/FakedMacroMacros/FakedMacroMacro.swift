@@ -186,6 +186,7 @@ public struct FakedMacro: PeerMacro
 struct FakedMacroPlugin: CompilerPlugin {
   let providingMacros: [Macro.Type] = [
     FakedMacro.self,
+    FakeDefaultMacro.self,
     FakedImpMacro.self,
   ]
 }

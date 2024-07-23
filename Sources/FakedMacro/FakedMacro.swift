@@ -46,7 +46,7 @@ public macro Faked_Imp() = #externalMacro(
 /// Specifies a default value to be returned by an "Empty" property or
 /// function implementation.
 @attached(peer)
-public macro FadeDefault<T>(_ value: T) = #externalMacro(
+public macro FakeDefault<T>(_ value: T) = #externalMacro(
     module: "FakedMacroMacros",
     type: "FakeDefaultMacro")
 
