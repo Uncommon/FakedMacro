@@ -33,15 +33,15 @@ public struct FakedMacro: PeerMacro
         for element in elements {
           guard let substitute = element.key.as(StringLiteralExprSyntax.self),
                 let substituteName = substitute.representedLiteralValue,
-                let type = element.value.as(MemberAccessExprSyntax.self),
-                let typeName = type.base?.as(DeclReferenceExprSyntax.self)
+                let type = element.value.as(StringLiteralExprSyntax.self),
+                let typeName = type.representedLiteralValue
           else {
             context.diagnose(.init(node: element,
                                    message: FakedError.wrongTypeSpecifier))
             return []
           }
           
-          concreteAssocTypes[substituteName] = typeName.baseName.text
+          concreteAssocTypes[substituteName] = typeName
         }
       }
       if let inherit = arguments.first(where:

@@ -175,7 +175,7 @@ final class FakedMacroTests: XCTestCase
     #if canImport(FakedMacroMacros)
     assertMacroExpansion(
         """
-        @Faked(types: ["X": Int.self, "Y": String.self]) protocol Thing {
+        @Faked(types: ["X": "Int", "Y": "String"]) protocol Thing {
           associatedtype X
           associatedtype Y
           associatedtype Z
@@ -311,7 +311,7 @@ final class FakedMacroTests: XCTestCase
     
     assertMacroExpansion(
         """
-        @Faked(types: ["Missing": Int.self])
+        @Faked(types: ["Missing": "Int"])
         public protocol Thing: AnyObject
         {
           associatedtype Sequence: Swift.Sequence

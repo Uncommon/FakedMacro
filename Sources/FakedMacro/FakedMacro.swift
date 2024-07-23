@@ -22,14 +22,15 @@
 /// * For unrecognized types, the `.fakeDefault()` static function will be
 /// used, assuming that it exists.
 ///
-/// - parameter types: Overrides for associated types.
+/// - parameter types: Overrides for associated types. Key is protocol
+/// associated type name, value is concrete type name.
 /// - parameter anyObject: If `true`, the generated "Null" type will be a
 /// `class`. Passing `false` has no effect.
 /// - parameter inherit: Other types that the "Empty" protocol should
 /// inherit. Specified as strings to allow for types introduced by other
 /// macros.
 @attached(peer, names: prefixed(Empty), prefixed(Null))
-public macro Faked(types: [String: Any.Type] = [:],
+public macro Faked(types: [String: String] = [:],
                    anyObject: Bool = false,
                    inherit: [String] = []) = #externalMacro(
     module: "FakedMacroMacros",
