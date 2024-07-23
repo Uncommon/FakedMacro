@@ -3,11 +3,10 @@ import FakedMacro
 let a = 17
 let b = 25
 
-@Faked(types: ["X": Int.self])
-protocol Thing {
-  associatedtype X
-  var isGood: Bool { get }
-  func intFunc() -> Int
+@Faked protocol Parent {
+  var x: Int { get }
 }
 
-print("\(NullThing().isGood)")
+@Faked(inherit: [EmptyParent.self]) protocol Child: Parent {
+  var y: Int { get }
+}

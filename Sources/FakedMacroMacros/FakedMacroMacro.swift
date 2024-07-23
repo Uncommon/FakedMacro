@@ -22,31 +22,43 @@ public struct FakedMacro: PeerMacro
         protocolDec.memberBlock.members.first?
         .decl.leadingTrivia.prefix { $0.isWhitespace } ?? [])
     var concreteAssocTypes: [String: String] = [:]
+    var inheritedTypes: [String] = []
 
-    if case let .argumentList(arguments) = node.arguments,
-       let types = arguments.first(where:
-           { $0.label?.trimmedDescription == "types" }),
-       let dict = types.expression.as(DictionaryExprSyntax.self),
-       case let .elements(elements) = dict.content
-    {
-      for element in elements {
-        guard let substitute = element.key.as(StringLiteralExprSyntax.self),
-              let substituteName = substitute.representedLiteralValue,
-              let type = element.value.as(MemberAccessExprSyntax.self),
-              let typeName = type.base?.as(DeclReferenceExprSyntax.self)
-        else {
-          context.diagnose(.init(node: element,
-                                 message: FakedError.wrongTypeSpecifier))
-          return []
+    if case let .argumentList(arguments) = node.arguments {
+      if let types = arguments.first(where:
+         { $0.label?.trimmedDescription == "types" }),
+         let dict = types.expression.as(DictionaryExprSyntax.self),
+         case let .elements(elements) = dict.content
+      {
+        for element in elements {
+          guard let substitute = element.key.as(StringLiteralExprSyntax.self),
+                let substituteName = substitute.representedLiteralValue,
+                let type = element.value.as(MemberAccessExprSyntax.self),
+                let typeName = type.base?.as(DeclReferenceExprSyntax.self)
+          else {
+            context.diagnose(.init(node: element,
+                                   message: FakedError.wrongTypeSpecifier))
+            return []
+          }
+          
+          concreteAssocTypes[substituteName] = typeName.baseName.text
         }
-        
-        concreteAssocTypes[substituteName] = typeName.baseName.text
+      }
+      if let inherit = arguments.first(where:
+          { $0.label?.trimmedDescription == "inherit" }),
+         let types = inherit.expression.as(ArrayExprSyntax.self) {
+        inheritedTypes = types.elements.compactMap {
+          // SomeType.self -> SomeType
+          $0.expression.as(MemberAccessExprSyntax.self)?
+            .base?.trimmedDescription
+        }
       }
     }
 
     let emptyProtocol = try createEmptyProtocol(
         protocolDec: protocolDec,
         indent: indentWithNewline,
+        inheritedTypes: inheritedTypes,
         emptyProtocolName: emptyProtocolName)
     let nullType = try createNullType(
         in: context,
@@ -63,6 +75,7 @@ public struct FakedMacro: PeerMacro
   static func createEmptyProtocol(
       protocolDec: ProtocolDeclSyntax,
       indent: Trivia,
+      inheritedTypes: [String],
       emptyProtocolName: String) throws -> ProtocolDeclSyntax
   {
     let protocolName = protocolDec.name.text
@@ -72,9 +85,10 @@ public struct FakedMacro: PeerMacro
     let funcs = protocolDec.memberBlock.members
         .map(\.decl)
         .compactMap { $0.as(FunctionDeclSyntax.self)?.withIndent(indent) }
+    let inherits = inheritedTypes.map { ", " + $0 }.joined()
     var emptyProtocol = try ProtocolDeclSyntax(
         """
-        protocol \(raw: emptyProtocolName): \(raw: protocolName) {
+        protocol \(raw: emptyProtocolName): \(raw: protocolName)\(raw: inherits) {
         }
         """)
     

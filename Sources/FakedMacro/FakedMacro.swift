@@ -25,9 +25,12 @@
 /// - parameter types: Overrides for associated types.
 /// - parameter anyObject: If `true`, the generated "Null" type will be a
 /// `class`. Passing `false` has no effect.
+/// - parameter inherit: Other types that the "Empty" protocol should
+/// inherit.
 @attached(peer, names: prefixed(Empty), prefixed(Null))
 public macro Faked(types: [String: Any.Type] = [:],
-                   anyObject: Bool = false) = #externalMacro(
+                   anyObject: Bool = false,
+                   inherit: [Any.Type] = []) = #externalMacro(
     module: "FakedMacroMacros",
     type: "FakedMacro")
 
