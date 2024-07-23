@@ -24,7 +24,8 @@ public struct FakedMacro: PeerMacro
     var concreteAssocTypes: [String: String] = [:]
 
     if case let .argumentList(arguments) = node.arguments,
-       let types = arguments.first,
+       let types = arguments.first(where:
+           { $0.label?.trimmedDescription == "types" }),
        let dict = types.expression.as(DictionaryExprSyntax.self),
        case let .elements(elements) = dict.content
     {
@@ -108,6 +109,17 @@ public struct FakedMacro: PeerMacro
         return false
       }
     } ?? false
+    let anyObjectOverride = {
+      if case let .argumentList(arguments) = node.arguments,
+         let anyObject = arguments.first(where: { $0.label?.trimmedDescription == "anyObject"}),
+         let expr = anyObject.expression.as(BooleanLiteralExprSyntax.self),
+         expr.literal.trimmedDescription == "true" {
+        true
+      }
+      else {
+        false
+      }
+    }()
     let nullIdentifier: TokenSyntax = .identifier("Null\(protocolName)")
                                       .withLeadingSpace
     let inheritance = InheritanceClauseSyntax(
@@ -144,7 +156,7 @@ public struct FakedMacro: PeerMacro
       nullMemberBlock.members.append(member)
     }
 
-    return isAnyObject
+    return isAnyObject || anyObjectOverride
         ? ClassDeclSyntax(name: nullIdentifier,
                           inheritanceClause: inheritance,
                           memberBlock: nullMemberBlock)

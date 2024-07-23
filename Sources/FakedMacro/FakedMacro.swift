@@ -7,8 +7,10 @@
 ///
 /// A concrete "Null"-prefixed type is also created, either a `class` or a
 /// `struct` depending on whether the original protocol inherist from
-/// `AnyObject`. This can be useful for when a concrete type is needed, but
-/// the values are not important.
+/// `AnyObject`. To override this, pass `true` for the `anyObject` parameter,
+/// such as when the protocol inherits `AnyObject` from a parent protocol.
+/// This can be useful for when a concrete type is needed, but the values are
+/// not important.
 ///
 /// Associated types for the "Null" type also default to adding a "Null"
 /// prefix, but can be overridden with the `types` parameter.
@@ -19,8 +21,13 @@
 /// * Standard types will use `0`, `false`, `nil`, `[]`, etc.
 /// * For unrecognized types, the `.fakeDefault()` static function will be
 /// used, assuming that it exists.
+///
+/// - parameter types: Overrides for associated types.
+/// - parameter anyObject: If `true`, the generated "Null" type will be a
+/// `class`. Passing `false` has no effect.
 @attached(peer, names: prefixed(Empty), prefixed(Null))
-public macro Faked(types: [String: Any.Type] = [:]) = #externalMacro(
+public macro Faked(types: [String: Any.Type] = [:],
+                   anyObject: Bool = false) = #externalMacro(
     module: "FakedMacroMacros",
     type: "FakedMacro")
 
