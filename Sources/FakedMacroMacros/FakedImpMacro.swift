@@ -54,6 +54,14 @@ public struct FakedImpMacro: ExtensionMacro
     else { throw FakedError.bindingCount }
     let type = binding.typeAnnotation!.type.trimmedDescription
     let defaultValue: String
+    let hasSetter = {
+      if case let .accessors(accessors) = binding.accessorBlock?.accessors {
+        accessors.contains { $0.accessorSpecifier.trimmedDescription == "set" }
+      }
+      else {
+        false
+      }
+    }()
     
     if let defaultMacro = try defaultMacroValue(for: property.attributes) {
       defaultValue = defaultMacro
@@ -66,9 +74,12 @@ public struct FakedImpMacro: ExtensionMacro
       defaultValue = ".fakeDefault()"
     }
     
+    let body = hasSetter
+        ? "{ get { \(defaultValue) } set {} }"
+        : "{ \(defaultValue) }"
     var decl = try VariableDeclSyntax(
       """
-        var \(binding.pattern.detached): \(raw: type) { \(raw: defaultValue) }
+        var \(binding.pattern.detached): \(raw: type) \(raw: body)
       """
       )
     let trivia = Trivia(pieces:

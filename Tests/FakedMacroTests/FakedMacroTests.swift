@@ -557,4 +557,35 @@ final class FakedMacroTests: XCTestCase
     throw XCTSkip("macros are only supported when running tests for the host platform")
     #endif
   }
+
+  func testGetSet() throws
+  {
+    #if canImport(FakedMacroMacros)
+    assertMacroExpansion(
+        """
+        @Faked protocol Thing {
+          var x: Int { get set }
+        }
+        """,
+        expandedSource: """
+        protocol Thing {
+          var x: Int { get set }
+        }
+        
+        protocol EmptyThing: Thing {
+          var x: Int { get set }
+        }
+        
+        struct NullThing: EmptyThing {}
+        
+        extension EmptyThing {
+          var x: Int { get { 0 } set {} }
+        }
+        """,
+        macros: testMacros
+    )
+    #else
+    throw XCTSkip("macros are only supported when running tests for the host platform")
+    #endif
+  }
 }
