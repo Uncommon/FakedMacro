@@ -26,11 +26,12 @@
 /// - parameter anyObject: If `true`, the generated "Null" type will be a
 /// `class`. Passing `false` has no effect.
 /// - parameter inherit: Other types that the "Empty" protocol should
-/// inherit.
+/// inherit. Specified as strings to allow for types introduced by other
+/// macros.
 @attached(peer, names: prefixed(Empty), prefixed(Null))
 public macro Faked(types: [String: Any.Type] = [:],
                    anyObject: Bool = false,
-                   inherit: [Any.Type] = []) = #externalMacro(
+                   inherit: [String] = []) = #externalMacro(
     module: "FakedMacroMacros",
     type: "FakedMacro")
 

@@ -47,10 +47,12 @@ public struct FakedMacro: PeerMacro
       if let inherit = arguments.first(where:
           { $0.label?.trimmedDescription == "inherit" }),
          let types = inherit.expression.as(ArrayExprSyntax.self) {
+        // Ideally these types would be passed as SomeType.self rather than
+        // raw strings, but if that type is introduced by another macro, then
+        // it doesn't exist when this macro is being expanded.
         inheritedTypes = types.elements.compactMap {
-          // SomeType.self -> SomeType
-          $0.expression.as(MemberAccessExprSyntax.self)?
-            .base?.trimmedDescription
+          $0.expression.as(StringLiteralExprSyntax.self)?
+            .representedLiteralValue
         }
       }
     }

@@ -532,7 +532,7 @@ final class FakedMacroTests: XCTestCase
     #if canImport(FakedMacroMacros)
     assertMacroExpansion(
         """
-        @Faked(inherit: [EmptyOne.self, EmptyTwo.self]) protocol Thing {
+        @Faked(inherit: ["EmptyOne", "EmptyTwo"]) protocol Thing {
           func intFunc() -> Int
         }
         """,
