@@ -24,6 +24,9 @@
 ///
 /// - parameter types: Overrides for associated types. Key is protocol
 /// associated type name, value is concrete type name.
+/// - parameter skip: Names of properties and functions to not include
+/// in the empty implementations. Use when an implementation already exists
+/// in another extension.
 /// - parameter anyObject: If `true`, the generated "Null" type will be a
 /// `class`. Passing `false` has no effect.
 /// - parameter inherit: Other types that the "Empty" protocol should
@@ -31,6 +34,7 @@
 /// macros.
 @attached(peer, names: prefixed(Empty), prefixed(Null))
 public macro Faked(types: [String: String] = [:],
+                   skip: [String] = [],
                    anyObject: Bool = false,
                    inherit: [String] = []) = #externalMacro(
     module: "FakedMacroMacros",

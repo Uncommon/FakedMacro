@@ -22,6 +22,7 @@ public struct FakedMacro: PeerMacro
         protocolDec.memberBlock.members.first?
         .decl.leadingTrivia.prefix { $0.isWhitespace } ?? [])
     var concreteAssocTypes: [String: String] = [:]
+    var skipNames: [String] = []
     var inheritedTypes: [String] = []
 
     if case let .argumentList(arguments) = node.arguments {
@@ -44,6 +45,14 @@ public struct FakedMacro: PeerMacro
           concreteAssocTypes[substituteName] = typeName
         }
       }
+      if let skips = arguments.first(where:
+          { $0.label?.trimmedDescription == "skip" }),
+         let skipArray = skips.expression.as(ArrayExprSyntax.self) {
+        skipNames = skipArray.elements.compactMap {
+          $0.expression.as(StringLiteralExprSyntax.self)?
+            .representedLiteralValue
+        }
+      }
       if let inherit = arguments.first(where:
           { $0.label?.trimmedDescription == "inherit" }),
          let types = inherit.expression.as(ArrayExprSyntax.self) {
@@ -61,6 +70,7 @@ public struct FakedMacro: PeerMacro
         protocolDec: protocolDec,
         indent: indentWithNewline,
         inheritedTypes: inheritedTypes,
+        skipNames: skipNames,
         emptyProtocolName: emptyProtocolName)
     let nullType = try createNullType(
         in: context,
@@ -78,15 +88,18 @@ public struct FakedMacro: PeerMacro
       protocolDec: ProtocolDeclSyntax,
       indent: Trivia,
       inheritedTypes: [String],
+      skipNames: [String],
       emptyProtocolName: String) throws -> ProtocolDeclSyntax
   {
     let protocolName = protocolDec.name.text
     let vars = protocolDec.memberBlock.members
         .map(\.decl)
         .compactMap { $0.as(VariableDeclSyntax.self)?.withIndent(indent) }
+        .filter { !skipNames.contains($0.bindings.first?.pattern.trimmedDescription ?? "") }
     let funcs = protocolDec.memberBlock.members
         .map(\.decl)
         .compactMap { $0.as(FunctionDeclSyntax.self)?.withIndent(indent) }
+        .filter { !skipNames.contains($0.name.text) }
     let inherits = inheritedTypes.map { ", " + $0 }.joined()
     var emptyProtocol = try ProtocolDeclSyntax(
         """
