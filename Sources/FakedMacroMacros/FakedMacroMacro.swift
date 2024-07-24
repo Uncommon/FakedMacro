@@ -24,6 +24,7 @@ public struct FakedMacro: PeerMacro
     var concreteAssocTypes: [String: String] = [:]
     var skipNames: [String] = []
     var inheritedTypes: [String] = []
+    var shouldCreateNull = true
 
     if case let .argumentList(arguments) = node.arguments {
       if let types = arguments.first(where:
@@ -64,6 +65,11 @@ public struct FakedMacro: PeerMacro
             .representedLiteralValue
         }
       }
+      if let createNull = arguments.first(where:
+          { $0.label?.trimmedDescription == "createNull" }),
+         let boolValue = createNull.expression.as(BooleanLiteralExprSyntax.self) {
+        shouldCreateNull = boolValue.trimmedDescription != "false"
+      }
     }
 
     let emptyProtocol = try createEmptyProtocol(
@@ -72,16 +78,22 @@ public struct FakedMacro: PeerMacro
         inheritedTypes: inheritedTypes,
         skipNames: skipNames,
         emptyProtocolName: emptyProtocolName)
-    let nullType = try createNullType(
-        in: context,
-        node: node,
-        protocolDec: protocolDec,
-        indent: indentWithNewline,
-        concreteAssocTypes: concreteAssocTypes,
-        emptyProtocolName: emptyProtocolName)
+    
+    var result = [DeclSyntax(emptyProtocol)]
+    
+    if shouldCreateNull {
+      let nullType = try createNullType(
+          in: context,
+          node: node,
+          protocolDec: protocolDec,
+          indent: indentWithNewline,
+          concreteAssocTypes: concreteAssocTypes,
+          emptyProtocolName: emptyProtocolName)
+      
+      result.append(DeclSyntax(nullType))
+    }
 
-    return [DeclSyntax(emptyProtocol),
-            DeclSyntax(nullType)]
+    return result
   }
   
   static func createEmptyProtocol(

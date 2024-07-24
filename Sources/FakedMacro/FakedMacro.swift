@@ -32,11 +32,14 @@
 /// - parameter inherit: Other types that the "Empty" protocol should
 /// inherit. Specified as strings to allow for types introduced by other
 /// macros.
+/// - parameter createNull: If `false`, creating the "Null" class or struct
+/// will be skipped.
 @attached(peer, names: prefixed(Empty), prefixed(Null))
 public macro Faked(types: [String: String] = [:],
                    skip: [String] = [],
                    anyObject: Bool = false,
-                   inherit: [String] = []) = #externalMacro(
+                   inherit: [String] = [],
+                   createNull: Bool = true) = #externalMacro(
     module: "FakedMacroMacros",
     type: "FakedMacro")
 
