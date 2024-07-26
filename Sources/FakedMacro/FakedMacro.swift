@@ -67,7 +67,7 @@ public macro FakeDefault(exp: String) = #externalMacro(
 
 /// It is not necessary to conform a type to `Fakable` as long as the
 /// `fakeDefault()` function exists when needed.
-protocol Fakable {
+public protocol Fakable {
   /// Implement the `fakeDefault()` function for custom types that have a
   /// general purpose default value. The `@Faked` macro will fall back on this
   /// for types it does not recognize and where no specific default is
