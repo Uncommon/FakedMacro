@@ -111,7 +111,13 @@ public struct FakedImpMacro: ExtensionMacro
         }) {
       if case let .argumentList(args) = defaultMacro.arguments,
          let firstArg = args.first {
-        return firstArg.expression.trimmedDescription
+        if firstArg.label?.trimmedDescription == "exp",
+           let expString = firstArg.expression.as(StringLiteralExprSyntax.self) {
+          return expString.representedLiteralValue
+        }
+        else {
+          return firstArg.expression.trimmedDescription
+        }
       }
       else {
         throw FakedError.invalidDefault

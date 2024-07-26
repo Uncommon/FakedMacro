@@ -57,6 +57,14 @@ public macro FakeDefault<T>(_ value: T) = #externalMacro(
     module: "FakedMacroMacros",
     type: "FakeDefaultMacro")
 
+/// Specifies the expression to use in an "Empty" implementation of a
+/// property or function. This is useful, for example, if the implementation
+/// needs to use one of the function's parameters.
+@attached(peer)
+public macro FakeDefault(exp: String) = #externalMacro(
+    module: "FakedMacroMacros",
+    type: "FakeDefaultMacro")
+
 /// It is not necessary to conform a type to `Fakable` as long as the
 /// `fakeDefault()` function exists when needed.
 protocol Fakable {
