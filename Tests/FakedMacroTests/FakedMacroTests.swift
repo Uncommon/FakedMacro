@@ -245,14 +245,15 @@ final class FakedMacroTests: XCTestCase
           func performWriting(_ block: (() throws -> Void)) throws
         }
 
-        protocol EmptyWritingManagement: WritingManagement {
+        
+        public protocol EmptyWritingManagement: WritingManagement {
           var isWriting: Bool { get }
           func performWriting(_ block: (() throws -> Void)) throws
         }
         
         struct NullWritingManagement: EmptyWritingManagement {}
         
-        extension EmptyWritingManagement {
+        public extension EmptyWritingManagement {
           var isWriting: Bool { false }
           func performWriting(_ block: (() throws -> Void)) throws {}
         }
@@ -283,7 +284,8 @@ final class FakedMacroTests: XCTestCase
           func perform()
         }
 
-        protocol EmptyThing: Thing {
+        
+        public protocol EmptyThing: Thing {
           func perform()
         }
         
@@ -291,7 +293,7 @@ final class FakedMacroTests: XCTestCase
           typealias Sequence = NullSequence
         }
         
-        extension EmptyThing {
+        public extension EmptyThing {
           func perform() {}
         }
         """,
@@ -325,7 +327,8 @@ final class FakedMacroTests: XCTestCase
           func perform()
         }
 
-        protocol EmptyThing: Thing {
+        
+        public protocol EmptyThing: Thing {
           func perform()
         }
         
@@ -333,7 +336,7 @@ final class FakedMacroTests: XCTestCase
           typealias Sequence = NullSequence
         }
         
-        extension EmptyThing {
+        public extension EmptyThing {
           func perform() {}
         }
         """,
@@ -365,14 +368,15 @@ final class FakedMacroTests: XCTestCase
           func makeSequence() -> AnySequence<Int>
         }
 
-        protocol EmptyThing: Thing {
+        
+        public protocol EmptyThing: Thing {
           func makeSet() -> Set<Int>
           func makeSequence() -> AnySequence<Int>
         }
         
         class NullThing: EmptyThing {}
         
-        extension EmptyThing {
+        public extension EmptyThing {
           func makeSet() -> Set<Int> { [] }
           func makeSequence() -> AnySequence<Int> { .init(Array<Int>()) }
         }
@@ -403,14 +407,15 @@ final class FakedMacroTests: XCTestCase
           func determine() -> Bool
         }
 
-        protocol EmptyThing: Thing {
+        
+        public protocol EmptyThing: Thing {
           var x: Int
           func determine() -> Bool
         }
         
         class NullThing: EmptyThing {}
         
-        extension EmptyThing {
+        public extension EmptyThing {
           var x: Int { 1 }
           func determine() -> Bool { true }
         }
@@ -439,13 +444,14 @@ final class FakedMacroTests: XCTestCase
           func determine(x: Int) -> Int
         }
 
-        protocol EmptyThing: Thing {
+        
+        public protocol EmptyThing: Thing {
           func determine(x: Int) -> Int
         }
         
         class NullThing: EmptyThing {}
         
-        extension EmptyThing {
+        public extension EmptyThing {
           func determine(x: Int) -> Int { x }
         }
         """,
@@ -503,7 +509,8 @@ final class FakedMacroTests: XCTestCase
           func z() -> Unknown
         }
 
-        protocol EmptyThing: Thing {
+        
+        public protocol EmptyThing: Thing {
           var x: Int
           var y: String
           var z: Unknown
@@ -514,7 +521,7 @@ final class FakedMacroTests: XCTestCase
         
         class NullThing: EmptyThing {}
         
-        extension EmptyThing {
+        public extension EmptyThing {
           var x: Int { 1 }
           var y: String { "" }
           var z: Unknown { .fakeDefault() }

@@ -42,6 +42,7 @@ public struct FakedImpMacro: ExtensionMacro
     }
     
     return [ExtensionDeclSyntax(
+        modifiers: protocolDec.modifiers,
         extensionKeyword: .keyword(.extension, trailingTrivia: .space),
         extendedType: type,
         memberBlock: memberBlock)]

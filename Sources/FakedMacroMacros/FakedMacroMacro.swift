@@ -119,6 +119,7 @@ public struct FakedMacro: PeerMacro
         }
         """)
     
+    emptyProtocol.modifiers = protocolDec.modifiers
     emptyProtocol.attributes.append(.attribute(
         .init(stringLiteral: "@Faked_Imp ")))
     
